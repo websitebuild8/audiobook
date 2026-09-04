@@ -1,0 +1,227 @@
+{
+  "books": [
+    {
+      "id": "books/Dar Al Fitya/book_01.pdf",
+      "title": "ކިތާބް ޝަރިއްޔާ ޚުލާސާ",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_01.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_02.pdf",
+      "title": "ޢުސޫލް އައްސުންނާ",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_02.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_03.pdf",
+      "title": "ޢުސޫލް އައްސުންނާ",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_03.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_04.pdf",
+      "title": "ރަސޫލާއަށް ބަދުބަސް ބުނާ މީހާގެ މައްޗަށް އުރައިގެން ނެގިފައިވާ ކަނޑި",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_04.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_05.pdf",
+      "title": "އިޚުލާޞުގެ ކަލިމައާއި އޭގެ މާނަ ތަޙްޤީޤުކުރުން",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_05.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_06.pdf",
+      "title": "އީމާންކަމާއި، އީމާންކަމުގެ ޢަލާމާތްތަކާއި، ސުންނަތްތަކާއި، ފުރިހަމަވުމާއި،",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_06.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_07.pdf",
+      "title": "ސަލަފުން އަދި ޙަދީޘްގެ އަޞްޙާބުންގެ ޢަޤީދާ",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_07.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_08.pdf",
+      "title": "ޙަދީޘްގެ އަޞްޙާބުންނަށް ނަޞްރުދިނުން",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_08.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_09.pdf",
+      "title": "ޝަރްޙުއް ސުންނަތް އަލް ބަރްބަހާރީ",
+      "category":"ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_09.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_10.pdf",
+      "title": "ޝައިޚުންގެ ޚަބަރުތަކާއި އެބޭކަލުންގެ އަޚްލާޤު",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_10.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_11.pdf",
+      "title": "ޢިލްމުގެ ފޮތް",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_11.pdf"
+    },
+    {
+      "id": "books/Dar Al Fitya/book_12.pdf",
+      "title": "ޤުރްއާން އުފުލާ މީހުންގެ އަޚްލާޤު",
+      "category": "ދާރް އަލް ފިތިޔާ",
+      "pdfAsset": "books/Dar Al Fitya/book_12.pdf"
+    },
+    {
+      "id": "books/Markaz Al Meezan/book_01.pdf",
+      "title": "ހިލޭ އަންހެނުންނާއި ފިރިހެނުން ގައިގޯޅިވެ މަސްހުނިވުން",
+      "category": "މަރްކަޒް އަލް މީޒާން",
+      "pdfAsset": "books/Markaz Al Meezan/book_01.pdf"
+    },
+    {
+      "id": "books/Markaz Al Meezan/book_02.pdf",
+      "title": "ނަބިއްޔާ ﷺ އަށް މާތްކޮށް ހިތުމާއި، އެކަލޭގެފާނަށް ފާޑުކިޔުމުގެ ޙުކުމް",
+      "category": "މަރްކަޒް އަލް މީޒާން",
+      "pdfAsset": "books/Markaz Al Meezan/book_02.pdf"
+    },
+    {
+      "id": "books/Markaz Al Meezan/book_03.pdf",
+      "title": "ނަބިއްޔާ ﷺގެ ނަމާދުގެ ޞިފަ އަދި އެއާއި ގުޅިފައިވާ ޛިކުރުތަކާއި ރަވާތިބު",
+      "category": "މަރްކަޒް އަލް މީޒާން",
+      "pdfAsset": "books/Markaz Al Meezan/book_03.pdf"
+    },
+    {
+      "id": "books/Markaz Al Meezan/book_04.pdf",
+      "title": "މަންޡޫމަތުލް-ބަޔްޤޫނިއްޔާ",
+      "category": "މަރްކަޒް އަލް މީޒާން",
+      "pdfAsset": "books/Markaz Al Meezan/book_04.pdf"
+    },
+    {
+      "id": "books/Markaz Al Meezan/book_05.pdf",
+      "title": "މުރުތައްދުންނާއި ތުރުކީންނާއި އެކުވެރިވެ， އެހީތެރިވެ， ވާގިވެރިވުމުން",
+      "category": "މަރްކަޒް އަލް މީޒާން",
+      "pdfAsset": "books/Markaz Al Meezan/book_05.pdf"
+    },
+    {
+      "id": "books/Markaz Al Meezan/book_06.pdf",
+      "title": "ޝުބުހަތައް ކަޝްފުކުރުން",
+      "category": "މަރްކަޒް އަލް މީޒާން",
+      "pdfAsset": "books/Markaz Al Meezan/book_06.pdf"
+    },
+    {
+      "id": "books/Markaz Al Meezan/book_07.pdf",
+      "title": "ޢަޤީދާގައި ފަޞްލުތަކެއް އައްރިސާލާ އައްޝާމިއްޔާ",
+      "category": "މަރްކަޒް އަލް މީޒާން",
+      "pdfAsset": "books/Markaz Al Meezan/book_07.pdf"
+    },
+    {
+      "id": "books/Markaz Al Meezan/book_08.pdf",
+      "title": "ﷲ ta alaa mathiverikoh maai kurumaai",
+      "category": "މަރްކަޒް އަލް މީޒާން",
+      "pdfAsset": "books/Markaz Al Meezan/book_08.pdf"
+    },
+    {
+      "id": "books/Markaz Al Meezan/book_09.pdf",
+      "title": "ﷲ ތަޢާލާގެ ޖަމާޢަތް، މުޥައްޙިދުންނަށް ނަޞްރު ލިބުން އަދި މުޝްރިކުންގެ",
+      "category": "މަރްކަޒް އަލް މީޒާން",
+      "pdfAsset": "books/Markaz Al Meezan/book_09.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_01.pdf",
+      "title": "ބާޠިލު ތުހުމަތްތަކުގެ މައްޗަށް އޮއްސާލެވުނު ގިނި ހިލަތައް",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_01.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_02.pdf",
+      "title": "ވަޟަޢީ ޤާނޫނު ހެދުމާއި އެއިން ޙުކުމްކުރުން ކުޑަ ކުފުރަށްވާ ޙާލަތުން",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_02.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_03.pdf",
+      "title": "ވަޟަޢީ ޤާނޫނު ކަނޑައަޅާ ޝަރުޢުކުރުމުގެ މައްސަލައިގެ މައްޗަށްވާ ޢާއްމު",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_03.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_04.pdf",
+      "title": "ޔާސިޤަށް ޙުކުމްކުރުމުގައި އިބްނު ކަޘީރު ގެންނެވި އިޖްމާޢުއާ މެދު",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_04.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_05.pdf",
+      "title": "ޙާކިމިއްޔަތުގެ މައްސަލާގައި ގެންނަ ބައެއް ޝުބްހަތަކާމެދު ޚުލާޞާ",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_05.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_06.pdf",
+      "title": "ޙުކުމްކުރުމުގެ މައްސަލާގައި ގެންނަ އިސްޙާޤު ބްނު ރާހަވައިހިގެ ބަސްފުޅުގެ",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_06.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_07.pdf",
+      "title": "ޙުކުމްގެ ބާބުގައި ޣާފިލުވެވޭ ބައެއް މުހިއްމު ނުކުތާތައް",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_07.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_08.pdf",
+      "title": "ޙުކްމުގެ އާޔަތާއި ޚަވާރިޖުން",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_08.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_09.pdf",
+      "title": "ޙުކްމުގެ އާޔަތް ތަފްސީރުކުރުމުގައި ސުލައިމާނު އަލްޢަލްވާން ހަދާފައިވާ",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_09.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_10.pdf",
+      "title": "ޢަލީ އަލްޙަލަބީ އާއި ޚާލިދު އަލްޢަންބަރީ އާއި ސަޢުދީގެ ފަތުވާ ކޮމިޓީގެ",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_10.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_11.pdf",
+      "title": "ޢިލްމުވެރިންގެ ފަހްމުން ފަހްމުކުރުން",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_11.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_12.pdf",
+      "title": "ﷲ ބާވައިލެއްވި ގޮތާ ޚިލާފަށް ޙުކުމްކުރުން",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_12.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_13.pdf",
+      "title": "ﷲ ބާވައިލެއްވި ގޮތާ ޚިލާފަށް ޙުކުމްކުރުމުގައި، އިބްނު ޢައްބާސްގެ",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_13.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_14.pdf",
+      "title": "ﷲ ބާވައިލެއްވި ގޮތާ ޚިލާފަށް ޙުކުމްކުރުމުގެ މައްސަލަ އެއަށް ރުޖޫޢަވާ",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_14.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_15.pdf",
+      "title": "ﷲ ބާވައިލެއްވި ގޮތާ ޚިލާފަށް ޙުކުމްކުރުމުގެ މައްސަލައާއި ޚަވާރިޖަކާއި",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_15.pdf"
+    },
+    {
+      "id": "books/Markaz Al fursan/book_16.pdf",
+      "title": "ﷲ ގެ ޙުކުމް ފިޔަވައި އެހެން ޙުކުމެއް ހޯދައިފި މީހާ މުރުތައްދުވެ",
+      "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
+      "pdfAsset": "books/Markaz Al fursan/book_16.pdf"
+    }
+  ]
+}
+
