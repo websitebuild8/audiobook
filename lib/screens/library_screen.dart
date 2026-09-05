@@ -54,8 +54,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
               return const Center(child: CircularProgressIndicator());
             }
             final books = snapshot.data!;
-            if (_tabIndex == 1) {
+            if (_tabIndex == 2) {
               return _BookmarksView(books: books, onOpen: _open);
+            }
+            if (_tabIndex == 1) {
+              return _AudioBooksView(books: books, onOpen: _open);
             }
             final query = _search.text.trim().toLowerCase();
             final filtered = books.where((book) {
@@ -129,7 +132,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   ),
                 ),
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
                   sliver: filtered.isEmpty
                       ? const SliverToBoxAdapter(child: _EmptyState())
                       : SliverGrid.builder(
@@ -138,9 +141,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
                             crossAxisCount: 2,
-                            mainAxisSpacing: 20,
-                            crossAxisSpacing: 16,
-                            childAspectRatio: .57,
+                            mainAxisSpacing: 12,
+                            crossAxisSpacing: 12,
+                            childAspectRatio: .58,
                           ),
                           itemBuilder: (context, index) => _BookTile(
                             book: visibleBooks[index],
@@ -214,10 +217,18 @@ class _ModernBottomNavigation extends StatelessWidget {
                 ),
                 Expanded(
                   child: _NavigationItem(
-                    label: 'ބުކްމާކް',
-                    icon: Icons.bookmarks_rounded,
+                    label: 'އޯޑިއޯ',
+                    icon: Icons.headphones_rounded,
                     selected: selectedIndex == 1,
                     onTap: () => onSelected(1),
+                  ),
+                ),
+                Expanded(
+                  child: _NavigationItem(
+                    label: 'ބުކްމާކް',
+                    icon: Icons.bookmarks_rounded,
+                    selected: selectedIndex == 2,
+                    onTap: () => onSelected(2),
                   ),
                 ),
               ],
@@ -292,6 +303,179 @@ class _NavigationItem extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AudioBooksView extends StatefulWidget {
+  const _AudioBooksView({required this.books, required this.onOpen});
+
+  final List<Book> books;
+  final void Function(Book book, [int? initialPage]) onOpen;
+
+  @override
+  State<_AudioBooksView> createState() => _AudioBooksViewState();
+}
+
+class _AudioBooksViewState extends State<_AudioBooksView> {
+  static const _pageSize = 10;
+  final _search = TextEditingController();
+  int _page = 0;
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final query = _search.text.trim().toLowerCase();
+    final audioBooks = widget.books.where((book) {
+      return book.hasAudio &&
+          (query.isEmpty ||
+              book.title.toLowerCase().contains(query) ||
+              book.category.toLowerCase().contains(query));
+    }).toList();
+    final pageCount = (audioBooks.length / _pageSize).ceil();
+    final currentPage = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
+    final visible = audioBooks
+        .skip(currentPage * _pageSize)
+        .take(_pageSize)
+        .toList(growable: false);
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverToBoxAdapter(
+          child: _TabHeader(
+            icon: Icons.headphones_rounded,
+            title: 'އޯޑިއޯ ފޮތްތައް',
+            subtitle: '${audioBooks.length} ފޮތް',
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(18, 4, 18, 18),
+            child: TextField(
+              controller: _search,
+              onChanged: (_) => setState(() => _page = 0),
+              decoration: InputDecoration(
+                hintText: 'އޯޑިއޯ ފޮތެއް ހޯދާ...',
+                prefixIcon: const Icon(Icons.search_rounded),
+                suffixIcon: query.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          _search.clear();
+                          setState(() => _page = 0);
+                        },
+                        icon: const Icon(Icons.close_rounded),
+                      ),
+              ),
+            ),
+          ),
+        ),
+        if (visible.isEmpty)
+          const SliverFillRemaining(
+            hasScrollBody: false,
+            child: _AudioBooksEmptyState(),
+          )
+        else
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 24),
+            sliver: SliverGrid.builder(
+              key: ValueKey('audio-$query-$currentPage'),
+              itemCount: visible.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                mainAxisSpacing: 12,
+                crossAxisSpacing: 12,
+                childAspectRatio: .58,
+              ),
+              itemBuilder: (context, index) => _BookTile(
+                book: visible[index],
+                detail: '${visible[index].audio.length} ބައި',
+                onTap: () => widget.onOpen(visible[index]),
+              ),
+            ),
+          ),
+        if (pageCount > 1)
+          SliverToBoxAdapter(
+            child: _Pagination(
+              currentPage: currentPage,
+              pageCount: pageCount,
+              color: AppTheme.emerald,
+              tint: AppTheme.mint,
+              onSelected: (page) => setState(() => _page = page),
+            ),
+          ),
+        const SliverToBoxAdapter(child: SizedBox(height: 18)),
+      ],
+    );
+  }
+}
+
+class _TabHeader extends StatelessWidget {
+  const _TabHeader({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 18),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: const BoxDecoration(
+              color: AppTheme.mint,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: AppTheme.gold),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.headlineSmall),
+                Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AudioBooksEmptyState extends StatelessWidget {
+  const _AudioBooksEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.headphones_rounded,
+              size: 54, color: AppTheme.emerald),
+          const SizedBox(height: 12),
+          Text(
+            'އޯޑިއޯ ފޮތެއް ނުފެނުނު',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ],
       ),
     );
   }
@@ -372,14 +556,14 @@ class _BookmarksViewState extends State<_BookmarksView> {
               )
             else
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                padding: const EdgeInsets.fromLTRB(14, 8, 14, 28),
                 sliver: SliverGrid.builder(
                   itemCount: savedItems.length,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                     crossAxisCount: 2,
-                    mainAxisSpacing: 20,
-                    crossAxisSpacing: 16,
-                    childAspectRatio: .57,
+                    mainAxisSpacing: 12,
+                    crossAxisSpacing: 12,
+                    childAspectRatio: .58,
                   ),
                   itemBuilder: (context, index) {
                     final item = savedItems[index];
@@ -447,24 +631,16 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 18, 16, 12),
-      padding: const EdgeInsets.all(15),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppTheme.surfaceHigh, AppTheme.surface],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: AppTheme.outline),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(18, 20, 18, 12),
       child: Row(
         children: [
           ClipRRect(
-            borderRadius: BorderRadius.circular(15),
+            borderRadius: BorderRadius.circular(25),
             child: Image.asset(
               'assets/branding/app_icon.png',
-              width: 52,
-              height: 52,
+              width: 48,
+              height: 48,
               fit: BoxFit.cover,
             ),
           ),
@@ -485,7 +661,17 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          const Icon(Icons.auto_stories_rounded, color: AppTheme.gold),
+          Container(
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceHigh,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppTheme.outline),
+            ),
+            child: const Icon(Icons.auto_stories_rounded,
+                color: AppTheme.gold, size: 20),
+          ),
         ],
       ),
     );
@@ -633,7 +819,7 @@ class _CategoryCards extends StatelessWidget {
           ),
         ),
         SizedBox(
-          height: 156,
+          height: 104,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             physics: const BouncingScrollPhysics(),
@@ -647,7 +833,7 @@ class _CategoryCards extends StatelessWidget {
                   books.where((book) => book.category == category).length;
               final isSelected = selected == category;
               return AnimatedScale(
-                scale: isSelected ? 1 : .96,
+                scale: isSelected ? 1 : .97,
                 duration: const Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
                 child: InkWell(
@@ -655,8 +841,8 @@ class _CategoryCards extends StatelessWidget {
                   borderRadius: BorderRadius.circular(24),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 250),
-                    width: 210,
-                    padding: const EdgeInsets.all(18),
+                    width: 164,
+                    padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(colors: categoryTheme.colors),
                       borderRadius: BorderRadius.circular(24),
@@ -679,20 +865,20 @@ class _CategoryCards extends StatelessWidget {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Icon(categoryTheme.icon,
-                                color: Colors.white, size: 28),
+                                color: Colors.white, size: 21),
                             if (isSelected)
                               const Icon(Icons.check_circle_rounded,
-                                  color: Colors.white, size: 24),
+                                  color: Colors.white, size: 18),
                           ],
                         ),
                         const Spacer(),
                         Text(
                           category,
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                             color: Colors.white,
-                            fontSize: 18,
+                            fontSize: 15,
                             height: 1.45,
                             fontWeight: FontWeight.w700,
                           ),
@@ -730,32 +916,31 @@ class _BooksSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 280),
-      margin: const EdgeInsets.fromLTRB(20, 22, 20, 0),
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-      decoration: BoxDecoration(
-        color: theme.tint,
-        borderRadius: BorderRadius.circular(18),
-      ),
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 22, 20, 2),
       child: Row(
         children: [
-          Icon(theme.icon, color: theme.primary),
+          Container(
+            width: 5,
+            height: 22,
+            decoration: BoxDecoration(
+              color: theme.primary,
+              borderRadius: BorderRadius.circular(99),
+            ),
+          ),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               category ?? 'ހުރިހާ ފޮތްތައް',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    color: theme.primary,
-                  ),
+              style: Theme.of(context).textTheme.titleLarge,
             ),
           ),
           Text(
             '$bookCount',
             style: TextStyle(
-              color: theme.primary,
+              color: AppTheme.gold,
               fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
@@ -884,67 +1069,110 @@ class _BookTile extends StatelessWidget {
       label: book.title,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  BookCover(book: book, compact: true),
-                  if (onDelete != null)
+        borderRadius: BorderRadius.circular(14),
+        child: Ink(
+          padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
+          decoration: BoxDecoration(
+            color: AppTheme.surface,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppTheme.outline),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Align(
+                      child: FractionallySizedBox(
+                        widthFactor: .82,
+                        heightFactor: .98,
+                        child: BookCover(book: book, compact: true),
+                      ),
+                    ),
                     PositionedDirectional(
-                      top: 8,
-                      end: 8,
-                      child: Material(
-                        color: AppTheme.surfaceHigh.withValues(alpha: .96),
-                        shape: const CircleBorder(),
-                        elevation: 3,
-                        child: IconButton(
-                          tooltip: 'ބުކްމާކް ފުހެލާ',
-                          onPressed: onDelete,
-                          icon: const Icon(Icons.delete_outline_rounded),
-                          color: Colors.redAccent,
-                          iconSize: 21,
-                          constraints: const BoxConstraints.tightFor(
-                            width: 40,
-                            height: 40,
+                      top: 0,
+                      start: 0,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 7,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.ink.withValues(alpha: .88),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: AppTheme.outline),
+                        ),
+                        child: Text(
+                          book.hasAudio ? 'AUDIO' : 'READ',
+                          textDirection: TextDirection.ltr,
+                          style: const TextStyle(
+                            color: AppTheme.gold,
+                            fontFamily: 'sans-serif',
+                            fontSize: 8,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                       ),
                     ),
+                    if (onDelete != null)
+                      PositionedDirectional(
+                        top: 0,
+                        end: 0,
+                        child: Material(
+                          color: AppTheme.surfaceHigh.withValues(alpha: .96),
+                          shape: const CircleBorder(),
+                          elevation: 3,
+                          child: IconButton(
+                            tooltip: 'ބުކްމާކް ފުހެލާ',
+                            onPressed: onDelete,
+                            icon: const Icon(Icons.delete_outline_rounded),
+                            color: Colors.redAccent,
+                            iconSize: 18,
+                            constraints: const BoxConstraints.tightFor(
+                              width: 34,
+                              height: 34,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 7),
+              Text(
+                book.title,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontSize: 14,
+                    ),
+              ),
+              const SizedBox(height: 2),
+              Row(
+                children: [
+                  Icon(
+                    book.hasAudio
+                        ? Icons.headphones_rounded
+                        : Icons.menu_book_rounded,
+                    size: 13,
+                    color: AppTheme.gold,
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      detail ?? (book.hasAudio ? 'ކިޔާ • އަޑުއަހާ' : 'ކިޔާ'),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontSize: 11,
+                          ),
+                      maxLines: 1,
+                    ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 11),
-            Text(
-              book.title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 2),
-            Row(
-              children: [
-                Icon(
-                  book.hasAudio
-                      ? Icons.headphones_rounded
-                      : Icons.menu_book_rounded,
-                  size: 15,
-                  color: AppTheme.emerald,
-                ),
-                const SizedBox(width: 5),
-                Expanded(
-                  child: Text(
-                    detail ?? (book.hasAudio ? 'ކިޔާ • އަޑުއަހާ' : 'ކިޔާ'),
-                    style: Theme.of(context).textTheme.bodyMedium,
-                    maxLines: 1,
-                  ),
-                ),
-              ],
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
