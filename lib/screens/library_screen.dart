@@ -1091,31 +1091,31 @@ class _BookTile extends StatelessWidget {
                         child: BookCover(book: book, compact: true),
                       ),
                     ),
-                    PositionedDirectional(
-                      top: 0,
-                      start: 0,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 7,
-                          vertical: 3,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppTheme.ink.withValues(alpha: .88),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: AppTheme.outline),
-                        ),
-                        child: Text(
-                          book.hasAudio ? 'AUDIO' : 'READ',
-                          textDirection: TextDirection.ltr,
-                          style: const TextStyle(
-                            color: AppTheme.gold,
-                            fontFamily: 'sans-serif',
-                            fontSize: 8,
-                            fontWeight: FontWeight.w800,
+                    if (book.hasAudio)
+                      PositionedDirectional(
+                        top: 0,
+                        start: 0,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 7,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppTheme.ink.withValues(alpha: .88),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: AppTheme.outline),
+                          ),
+                          child: const Text(
+                            'އޯޑިއޯ',
+                            textDirection: TextDirection.rtl,
+                            style: TextStyle(
+                              color: AppTheme.gold,
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                            ),
                           ),
                         ),
                       ),
-                    ),
                     if (onDelete != null)
                       PositionedDirectional(
                         top: 0,
