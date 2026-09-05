@@ -114,7 +114,7 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
   Widget build(BuildContext context) {
     final chapter = widget.book.audio[_chapter];
     return Material(
-      color: Colors.white,
+      color: AppTheme.surface,
       elevation: 8,
       shadowColor: Colors.black.withValues(alpha: .18),
       borderRadius: BorderRadius.circular(24),
@@ -182,100 +182,105 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
                       : duration.inMilliseconds.toDouble();
                   final value =
                       position.inMilliseconds.clamp(0, max.toInt()).toDouble();
-                  return Column(
-                    children: [
-                      SliderTheme(
-                        data: SliderTheme.of(context).copyWith(
-                          trackHeight: 3,
-                          thumbShape: const RoundSliderThumbShape(
-                            enabledThumbRadius: 6,
+                  return Directionality(
+                    textDirection: TextDirection.ltr,
+                    child: Column(
+                      children: [
+                        SliderTheme(
+                          data: SliderTheme.of(context).copyWith(
+                            trackHeight: 3,
+                            thumbShape: const RoundSliderThumbShape(
+                              enabledThumbRadius: 6,
+                            ),
+                            overlayShape: const RoundSliderOverlayShape(
+                              overlayRadius: 16,
+                            ),
                           ),
-                          overlayShape: const RoundSliderOverlayShape(
-                            overlayRadius: 16,
+                          child: Slider(
+                            value: value,
+                            max: max,
+                            onChanged: duration == Duration.zero
+                                ? null
+                                : (next) => _player.seek(
+                                      Duration(milliseconds: next.round()),
+                                    ),
                           ),
                         ),
-                        child: Slider(
-                          value: value,
-                          max: max,
-                          onChanged: duration == Duration.zero
-                              ? null
-                              : (next) => _player.seek(
-                                    Duration(milliseconds: next.round()),
-                                  ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              _formatDuration(position),
+                              style: _timeStyle,
+                            ),
+                            Text(
+                              _formatDuration(duration),
+                              style: _timeStyle,
+                            ),
+                          ],
                         ),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            _formatDuration(position),
-                            textDirection: TextDirection.ltr,
-                            style: _timeStyle,
-                          ),
-                          Text(
-                            _formatDuration(duration),
-                            textDirection: TextDirection.ltr,
-                            style: _timeStyle,
-                          ),
-                        ],
-                      ),
-                    ],
+                      ],
+                    ),
                   );
                 },
               ),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  IconButton(
-                    onPressed: _chapter > 0 ? () => _changeChapter(-1) : null,
-                    icon: const Icon(Icons.skip_next_rounded),
-                  ),
-                  IconButton(
-                    onPressed: () => _seekRelative(-10),
-                    icon: const Icon(Icons.replay_10_rounded),
-                  ),
-                  StreamBuilder<PlayerState>(
-                    stream: _player.playerStateStream,
-                    builder: (context, snapshot) {
-                      final playing = snapshot.data?.playing ?? false;
-                      return IconButton.filled(
-                        style: IconButton.styleFrom(
-                          backgroundColor: AppTheme.emerald,
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(52, 52),
-                        ),
-                        onPressed: _loading
-                            ? null
-                            : () => playing ? _player.pause() : _player.play(),
-                        icon: _loading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  color: Colors.white,
+              Directionality(
+                textDirection: TextDirection.ltr,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    IconButton(
+                      onPressed: _chapter > 0 ? () => _changeChapter(-1) : null,
+                      icon: const Icon(Icons.skip_previous_rounded),
+                    ),
+                    IconButton(
+                      onPressed: () => _seekRelative(-10),
+                      icon: const Icon(Icons.replay_10_rounded),
+                    ),
+                    StreamBuilder<PlayerState>(
+                      stream: _player.playerStateStream,
+                      builder: (context, snapshot) {
+                        final playing = snapshot.data?.playing ?? false;
+                        return IconButton.filled(
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppTheme.emerald,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(52, 52),
+                          ),
+                          onPressed: _loading
+                              ? null
+                              : () =>
+                                  playing ? _player.pause() : _player.play(),
+                          icon: _loading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    color: Colors.white,
+                                  ),
+                                )
+                              : Icon(
+                                  playing
+                                      ? Icons.pause_rounded
+                                      : Icons.play_arrow_rounded,
+                                  size: 30,
                                 ),
-                              )
-                            : Icon(
-                                playing
-                                    ? Icons.pause_rounded
-                                    : Icons.play_arrow_rounded,
-                                size: 30,
-                              ),
-                      );
-                    },
-                  ),
-                  IconButton(
-                    onPressed: () => _seekRelative(30),
-                    icon: const Icon(Icons.forward_30_rounded),
-                  ),
-                  IconButton(
-                    onPressed: _chapter < widget.book.audio.length - 1
-                        ? () => _changeChapter(1)
-                        : null,
-                    icon: const Icon(Icons.skip_previous_rounded),
-                  ),
-                ],
+                        );
+                      },
+                    ),
+                    IconButton(
+                      onPressed: () => _seekRelative(30),
+                      icon: const Icon(Icons.forward_30_rounded),
+                    ),
+                    IconButton(
+                      onPressed: _chapter < widget.book.audio.length - 1
+                          ? () => _changeChapter(1)
+                          : null,
+                      icon: const Icon(Icons.skip_next_rounded),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -287,7 +292,7 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
   static const _timeStyle = TextStyle(
     fontFamily: 'sans-serif',
     fontSize: 11,
-    color: Color(0xFF6D807C),
+    color: Color(0xFF91A09A),
   );
 
   String _formatDuration(Duration value) {

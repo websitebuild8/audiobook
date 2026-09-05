@@ -41,6 +41,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppTheme.canvas,
       body: SafeArea(
         bottom: false,
         child: FutureBuilder<List<Book>>(
@@ -104,7 +105,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       ),
                     ),
                   ),
-                ),   
+                ),
                 if (audioBooks.isNotEmpty && query.isEmpty && _category == null)
                   SliverToBoxAdapter(
                     child: _FeaturedCarousel(books: audioBooks, onOpen: _open),
@@ -188,8 +189,9 @@ class _ModernBottomNavigation extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppTheme.ink,
+            color: AppTheme.surface,
             borderRadius: BorderRadius.circular(25),
+            border: Border.all(color: AppTheme.outline),
             boxShadow: [
               BoxShadow(
                 color: AppTheme.ink.withValues(alpha: .2),
@@ -258,7 +260,7 @@ class _NavigationItem extends StatelessWidget {
               vertical: 10,
             ),
             decoration: BoxDecoration(
-              color: selected ? Colors.white : Colors.transparent,
+              color: selected ? AppTheme.emerald : Colors.transparent,
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
@@ -266,7 +268,7 @@ class _NavigationItem extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  color: selected ? AppTheme.emerald : Colors.white70,
+                  color: selected ? Colors.white : Colors.white60,
                   size: 23,
                 ),
                 AnimatedSize(
@@ -278,7 +280,7 @@ class _NavigationItem extends StatelessWidget {
                           child: Text(
                             label,
                             style: const TextStyle(
-                              color: AppTheme.ink,
+                              color: Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
@@ -445,17 +447,35 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(22, 28, 22, 18),
+    return Container(
+      margin: const EdgeInsets.fromLTRB(16, 18, 16, 12),
+      padding: const EdgeInsets.all(15),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppTheme.surfaceHigh, AppTheme.surface],
+        ),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: AppTheme.outline),
+      ),
       child: Row(
         children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(15),
+            child: Image.asset(
+              'assets/branding/app_icon.png',
+              width: 52,
+              height: 52,
+              fit: BoxFit.cover,
+            ),
+          ),
+          const SizedBox(width: 13),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'މަކްތަބާ އަޘަރިއްޔާ',
-                  style: Theme.of(context).textTheme.headlineSmall,
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -465,18 +485,7 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            width: 50,
-            height: 50,
-            decoration: const BoxDecoration(
-              color: AppTheme.mint,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.auto_stories_rounded,
-              color: AppTheme.emerald,
-            ),
-          ),
+          const Icon(Icons.auto_stories_rounded, color: AppTheme.gold),
         ],
       ),
     );
@@ -510,7 +519,7 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 22),
           child: Text(
-          'އަޑާއިއެކު ކިޔާ ',
+            'އަޑާއިއެކު ކިޔާ ',
             style: Theme.of(context).textTheme.titleLarge,
           ),
         ),
@@ -539,24 +548,14 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
-                        colors: [AppTheme.emerald, AppTheme.ink],
+                        colors: [AppTheme.mint, AppTheme.surface],
                       ),
                       borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: AppTheme.outline),
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 90,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: .12),
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: const Icon(
-                            Icons.graphic_eq_rounded,
-                            color: Colors.white,
-                            size: 44,
-                          ),
-                        ),
+                        SizedBox(width: 96, child: BookCover(book: book)),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
@@ -662,7 +661,7 @@ class _CategoryCards extends StatelessWidget {
                       gradient: LinearGradient(colors: categoryTheme.colors),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: isSelected ? Colors.white : Colors.transparent,
+                        color: isSelected ? AppTheme.gold : Colors.transparent,
                         width: 3,
                       ),
                       boxShadow: [
@@ -786,52 +785,55 @@ class _Pagination extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 2, 20, 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _PageButton(
-            icon: Icons.chevron_left_rounded,
-            enabled: currentPage > 0,
-            onTap: () => onSelected(currentPage - 1),
-            tint: tint,
-          ),
-          const SizedBox(width: 8),
-          ...List.generate(pageCount, (page) {
-            final selected = page == currentPage;
-            return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 3),
-              child: InkWell(
-                onTap: () => onSelected(page),
-                borderRadius: BorderRadius.circular(14),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  width: selected ? 42 : 36,
-                  height: 42,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: selected ? color : tint,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Text(
-                    '${page + 1}',
-                    style: TextStyle(
-                      color: selected ? Colors.white : AppTheme.ink,
-                      fontWeight: FontWeight.w800,
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _PageButton(
+              icon: Icons.chevron_left_rounded,
+              enabled: currentPage > 0,
+              onTap: () => onSelected(currentPage - 1),
+              tint: tint,
+            ),
+            const SizedBox(width: 8),
+            ...List.generate(pageCount, (page) {
+              final selected = page == currentPage;
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 3),
+                child: InkWell(
+                  onTap: () => onSelected(page),
+                  borderRadius: BorderRadius.circular(14),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    curve: Curves.easeOutCubic,
+                    width: selected ? 42 : 36,
+                    height: 42,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: selected ? color : tint,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Text(
+                      '${page + 1}',
+                      style: TextStyle(
+                        color: selected ? Colors.white : Colors.white70,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ),
-              ),
-            );
-          }),
-          const SizedBox(width: 8),
-          _PageButton(
-            icon: Icons.chevron_right_rounded,
-            enabled: currentPage < pageCount - 1,
-            onTap: () => onSelected(currentPage + 1),
-            tint: tint,
-          ),
-        ],
+              );
+            }),
+            const SizedBox(width: 8),
+            _PageButton(
+              icon: Icons.chevron_right_rounded,
+              enabled: currentPage < pageCount - 1,
+              onTap: () => onSelected(currentPage + 1),
+              tint: tint,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -896,7 +898,7 @@ class _BookTile extends StatelessWidget {
                       top: 8,
                       end: 8,
                       child: Material(
-                        color: Colors.white.withValues(alpha: .94),
+                        color: AppTheme.surfaceHigh.withValues(alpha: .96),
                         shape: const CircleBorder(),
                         elevation: 3,
                         child: IconButton(

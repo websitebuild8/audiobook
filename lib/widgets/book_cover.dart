@@ -14,29 +14,109 @@ class BookCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (book.coverAsset != null) {
-      return Hero(
-        tag: 'cover-${book.id}',
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(compact ? 16 : 24),
-          clipBehavior: Clip.antiAlias,
-          child: Image.asset(
+    final cover = book.coverAsset == null
+        ? _GeneratedFace(book: book, compact: compact)
+        : Image.asset(
             book.coverAsset!,
             fit: BoxFit.cover,
             filterQuality: FilterQuality.medium,
-            errorBuilder: (context, error, stackTrace) =>
-                _GeneratedCover(book: book, compact: compact),
+            errorBuilder: (_, __, ___) =>
+                _GeneratedFace(book: book, compact: compact),
+          );
+
+    return Padding(
+      padding: EdgeInsets.fromLTRB(compact ? 7 : 10, 3, compact ? 9 : 14, 12),
+      child: Transform(
+        alignment: Alignment.center,
+        transform: Matrix4.identity()
+          ..setEntry(3, 2, .001)
+          ..rotateY(-.035),
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8E2D7),
+            borderRadius: const BorderRadius.only(
+              topRight: Radius.circular(5),
+              bottomRight: Radius.circular(5),
+              topLeft: Radius.circular(2),
+              bottomLeft: Radius.circular(2),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .65),
+                blurRadius: compact ? 15 : 24,
+                spreadRadius: 1,
+                offset: Offset(compact ? 7 : 10, compact ? 10 : 15),
+              ),
+              BoxShadow(
+                color: AppTheme.emerald.withValues(alpha: .12),
+                blurRadius: 20,
+                offset: const Offset(-3, 4),
+              ),
+            ],
+          ),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Positioned(
+                right: -3,
+                top: 5,
+                bottom: 5,
+                width: 8,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8E2D7),
+                    borderRadius: BorderRadius.circular(2),
+                    boxShadow: const [
+                      BoxShadow(color: Color(0xFF9D978D), offset: Offset(1, 0)),
+                    ],
+                  ),
+                ),
+              ),
+              ClipRRect(
+                borderRadius: const BorderRadius.only(
+                  topRight: Radius.circular(4),
+                  bottomRight: Radius.circular(4),
+                  topLeft: Radius.circular(1),
+                  bottomLeft: Radius.circular(1),
+                ),
+                child: cover,
+              ),
+              Positioned(
+                left: 0,
+                top: 0,
+                bottom: 0,
+                width: compact ? 9 : 13,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.black.withValues(alpha: .72),
+                        Colors.black.withValues(alpha: .16),
+                        Colors.white.withValues(alpha: .09),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: compact ? 11 : 16,
+                top: 0,
+                bottom: 0,
+                width: 1,
+                child: ColoredBox(
+                  color: Colors.white.withValues(alpha: .14),
+                ),
+              ),
+            ],
           ),
         ),
-      );
-    }
-    return _GeneratedCover(book: book, compact: compact);
+      ),
+    );
   }
 }
 
-class _GeneratedCover extends StatelessWidget {
-  const _GeneratedCover({required this.book, required this.compact});
+class _GeneratedFace extends StatelessWidget {
+  const _GeneratedFace({required this.book, required this.compact});
 
   final Book book;
   final bool compact;
@@ -44,101 +124,133 @@ class _GeneratedCover extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final palette = CategoryTheme.forName(book.category).colors;
-    return Hero(
-      tag: 'cover-${book.id}',
-      child: Material(
-        color: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topRight,
-              end: Alignment.bottomLeft,
-              colors: palette,
-            ),
-            borderRadius: BorderRadius.circular(compact ? 16 : 24),
-            boxShadow: [
-              BoxShadow(
-                color: palette.last.withValues(alpha: .22),
-                blurRadius: 22,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              Positioned(
-                left: -28,
-                top: -22,
-                child: Transform.rotate(
-                  angle: math.pi / 8,
-                  child: Container(
-                    width: 95,
-                    height: 150,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: .13),
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(45),
-                    ),
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topRight,
+          end: Alignment.bottomLeft,
+          colors: palette,
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          if (constraints.maxWidth < 80 || constraints.maxHeight < 150) {
+            return Padding(
+              padding: const EdgeInsets.all(7),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    book.hasAudio
+                        ? Icons.headphones_rounded
+                        : Icons.menu_book_rounded,
+                    color: AppTheme.gold,
+                    size: 16,
                   ),
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(compact ? 14 : 22),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Icon(
-                          book.hasAudio
-                              ? Icons.headphones_rounded
-                              : Icons.menu_book_rounded,
-                          color: Colors.white,
-                          size: compact ? 20 : 26,
-                        ),
-                        Container(
-                          width: 28,
-                          height: 3,
-                          decoration: BoxDecoration(
-                            color: AppTheme.gold,
-                            borderRadius: BorderRadius.circular(99),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const Spacer(),
-                    Text(
+                  const SizedBox(height: 5),
+                  Flexible(
+                    child: Text(
                       book.title,
-                      maxLines: compact ? 3 : 5,
+                      maxLines: 3,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
                         color: Colors.white,
-                        fontSize: compact ? 16 : 22,
-                        height: 1.55,
+                        fontSize: 10,
+                        height: 1.35,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: compact ? 5 : 10),
-                    Text(
-                      book.category,
-                      textDirection: TextDirection.ltr,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .72),
-                        fontFamily: 'sans-serif',
-                        fontSize: compact ? 10 : 12,
-                        letterSpacing: .3,
-                      ),
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+            );
+          }
+          return _GeneratedFaceDetails(book: book, compact: compact);
+        },
+      ),
+    );
+  }
+}
+
+class _GeneratedFaceDetails extends StatelessWidget {
+  const _GeneratedFaceDetails({required this.book, required this.compact});
+
+  final Book book;
+  final bool compact;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Positioned(
+          right: -42,
+          top: -35,
+          child: Transform.rotate(
+            angle: math.pi / 7,
+            child: Icon(
+              Icons.auto_stories_rounded,
+              size: compact ? 130 : 190,
+              color: Colors.white.withValues(alpha: .055),
+            ),
+          ),
+        ),
+        Padding(
+          padding: EdgeInsets.fromLTRB(
+            compact ? 17 : 25,
+            compact ? 13 : 22,
+            compact ? 12 : 18,
+            compact ? 13 : 22,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Icon(
+                    book.hasAudio
+                        ? Icons.headphones_rounded
+                        : Icons.menu_book_rounded,
+                    color: AppTheme.gold,
+                    size: compact ? 18 : 25,
+                  ),
+                  Container(
+                    width: 26,
+                    height: 2,
+                    color: Colors.white.withValues(alpha: .7),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                book.title,
+                maxLines: compact ? 4 : 6,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: compact ? 15 : 22,
+                  height: 1.55,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const Spacer(),
+              Divider(color: Colors.white.withValues(alpha: .25)),
+              Text(
+                book.category,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: .68),
+                  fontSize: compact ? 9 : 12,
                 ),
               ),
             ],
           ),
         ),
-      ),
+      ],
     );
   }
 }

@@ -16,28 +16,28 @@ class CategoryTheme {
   static CategoryTheme forName(String category) {
     if (category.contains('ފިތިޔާ')) {
       return const CategoryTheme(
-        colors: [Color(0xFF9A6A3A), Color(0xFF3F2B20)],
-        tint: Color(0xFFF4E8D8),
+        colors: [Color(0xFF1C7A61), Color(0xFF0C2921)],
+        tint: Color(0xFF163C32),
         icon: Icons.local_library_rounded,
       );
     }
     if (category.contains('މީޒާން')) {
       return const CategoryTheme(
-        colors: [Color(0xFF397A9A), Color(0xFF173D52)],
-        tint: Color(0xFFDDEEF5),
+        colors: [Color(0xFF257D6A), Color(0xFF102F28)],
+        tint: Color(0xFF17372F),
         icon: Icons.balance_rounded,
       );
     }
     if (category.contains('ފުރްސާން')) {
       return const CategoryTheme(
-        colors: [Color(0xFF17806F), Color(0xFF123F39)],
-        tint: Color(0xFFDDF2EA),
+        colors: [Color(0xFF159579), Color(0xFF0B362C)],
+        tint: Color(0xFF153F35),
         icon: Icons.auto_stories_rounded,
       );
     }
     return const CategoryTheme(
       colors: [Color(0xFF0D6B5D), Color(0xFF173B36)],
-      tint: Color(0xFFDDF2EA),
+      tint: Color(0xFF163C32),
       icon: Icons.library_books_rounded,
     );
   }

@@ -23,6 +23,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/catalog.json
+    - assets/branding/
     - covers/
     - books/Dar Al Fitya/
     - books/Markaz Al Meezan/
