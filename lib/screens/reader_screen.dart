@@ -77,7 +77,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: !_ready
           ? const Center(child: CircularProgressIndicator())
           : Stack(
@@ -89,7 +89,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     initialPageNumber: _page,
                     params: PdfViewerParams(
                       margin: 10,
-                      backgroundColor: const Color(0xFF121715),
+                      backgroundColor:
+                          Theme.of(context).brightness == Brightness.dark
+                              ? const Color(0xFF121715)
+                              : const Color(0xFFE9EBE7),
                       pageDropShadow: BoxShadow(
                         color: Colors.black.withValues(alpha: .12),
                         blurRadius: 12,
@@ -167,7 +170,8 @@ class _ReaderHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppTheme.surface.withValues(alpha: .97),
+      color:
+          Theme.of(context).colorScheme.surfaceContainer.withValues(alpha: .97),
       elevation: 1,
       child: SafeArea(
         bottom: false,
@@ -213,7 +217,9 @@ class _ReaderHeader extends StatelessWidget {
                         ? Icons.bookmark_rounded
                         : Icons.bookmark_border_rounded,
                     key: ValueKey(bookmarked),
-                    color: bookmarked ? AppTheme.gold : Colors.white70,
+                    color: bookmarked
+                        ? Theme.of(context).colorScheme.secondary
+                        : Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                 ),
               ),

@@ -3,7 +3,6 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../models/book.dart';
-import '../theme/app_theme.dart';
 import '../theme/category_theme.dart';
 
 class BookCover extends StatelessWidget {
@@ -48,7 +47,9 @@ class BookCover extends StatelessWidget {
                 offset: Offset(compact ? 7 : 10, compact ? 10 : 15),
               ),
               BoxShadow(
-                color: AppTheme.emerald.withValues(alpha: .12),
+                color: Theme.of(context).colorScheme.primary.withValues(
+                      alpha: .12,
+                    ),
                 blurRadius: 20,
                 offset: const Offset(-3, 4),
               ),
@@ -123,7 +124,10 @@ class _GeneratedFace extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = CategoryTheme.forName(book.category).colors;
+    final palette = CategoryTheme.forName(
+      book.category,
+      dark: Theme.of(context).brightness == Brightness.dark,
+    ).colors;
     return DecoratedBox(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -144,7 +148,7 @@ class _GeneratedFace extends StatelessWidget {
                     book.hasAudio
                         ? Icons.headphones_rounded
                         : Icons.menu_book_rounded,
-                    color: AppTheme.gold,
+                    color: Theme.of(context).colorScheme.secondary,
                     size: 16,
                   ),
                   const SizedBox(height: 5),
@@ -212,7 +216,7 @@ class _GeneratedFaceDetails extends StatelessWidget {
                     book.hasAudio
                         ? Icons.headphones_rounded
                         : Icons.menu_book_rounded,
-                    color: AppTheme.gold,
+                    color: Theme.of(context).colorScheme.secondary,
                     size: compact ? 18 : 25,
                   ),
                   Container(

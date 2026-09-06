@@ -208,7 +208,13 @@
       "id": "books/Markaz Al fursan/book_14.pdf",
       "title": "ﷲ ބާވައިލެއްވި ގޮތާ ޚިލާފަށް ޙުކުމްކުރުމުގެ މައްސަލަ އެއަށް ރުޖޫޢަވާ",
       "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
-      "pdfAsset": "books/Markaz Al fursan/book_14.pdf"
+      "pdfAsset": "books/Markaz Al fursan/book_14.pdf",
+      "audioAssets": [
+        "audios/Markaz Al Fursan/hukum masala rujoo'a vaa aslu/1. Muqahdima - Hukumuge massala rujooavaa Aslu.mp3",
+        "audios/Markaz Al Fursan/hukum masala rujoo'a vaa aslu/2. Aslu 1 - Hukumuge massala rujooavaa Aslu.mp3",
+        "audios/Markaz Al Fursan/hukum masala rujoo'a vaa aslu/3. Aslu 2 - Hukumuge massala rujooavaa Aslu.mp3",
+        "audios/Markaz Al Fursan/hukum masala rujoo'a vaa aslu/4. Aslu 3 - Hukumuge massala rujooavaa Aslu.mp3"
+      ]
     },
     {
       "id": "books/Markaz Al fursan/book_15.pdf",
@@ -221,7 +227,15 @@
       "title": "ﷲ ގެ ޙުކުމް ފިޔަވައި އެހެން ޙުކުމެއް ހޯދައިފި މީހާ މުރުތައްދުވެ",
       "category": "މަރްކަޒްްް އަލްް ފުރްސާން",
       "pdfAsset": "books/Markaz Al fursan/book_16.pdf"
+    },
+    {
+      "id": "books/Other/SunnahMuzani.pdf",
+      "title": "ޝަރްޙުއް ސުންނަތް - އަލްމުޒަނީ",
+      "category": "އެހެނިހެން",
+      "pdfAsset": "books/Other/SunnahMuzani.pdf",
+      "audioAssets": [
+        "audios/other/Muzani/SunnahMuzani.mp3"
+      ]
     }
   ]
 }
-

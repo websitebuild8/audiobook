@@ -5,15 +5,7 @@ import 'package:flutter/services.dart';
 import '../models/book.dart';
 
 abstract final class CatalogService {
-  static const _audioBookMarker = 'ރުޖޫޢަވާ';
-
   static Future<List<Book>> load() async {
-    final manifest = await AssetManifest.loadFromAssetBundle(rootBundle);
-    final assets = manifest.listAssets();
-    final audioAssets = assets
-        .where((path) => path.toLowerCase().endsWith('.mp3'))
-        .toList()
-      ..sort(_naturalAudioSort);
     final catalogJson = jsonDecode(
       await rootBundle.loadString('assets/catalog.json'),
     ) as Map<String, dynamic>;
@@ -23,23 +15,23 @@ abstract final class CatalogService {
       final entry = value as Map<String, dynamic>;
       final id = entry['id'] as String;
       final title = entry['title'] as String;
-      final isAudioBook = title.contains(_audioBookMarker);
+      final audioAssets = List<String>.from(
+        entry['audioAssets'] as List<dynamic>? ?? const [],
+      )..sort(_naturalAudioSort);
       return Book(
         id: id,
         title: title,
         category: entry['category'] as String,
         pdfAsset: entry['pdfAsset'] as String,
         coverAsset: entry['coverAsset'] as String?,
-        audio: isAudioBook
-            ? audioAssets
-                .map(
-                  (asset) => AudioChapter(
-                    title: _audioTitle(asset),
-                    assetPath: asset,
-                  ),
-                )
-                .toList()
-            : const [],
+        audio: audioAssets
+            .map(
+              (asset) => AudioChapter(
+                title: _audioTitle(asset),
+                assetPath: asset,
+              ),
+            )
+            .toList(),
       );
     }).toList();
   }

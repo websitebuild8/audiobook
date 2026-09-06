@@ -5,7 +5,6 @@ import 'package:just_audio/just_audio.dart';
 
 import '../models/book.dart';
 import '../services/progress_service.dart';
-import '../theme/app_theme.dart';
 
 class AudioPlayerPanel extends StatefulWidget {
   const AudioPlayerPanel({super.key, required this.book});
@@ -114,7 +113,7 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
   Widget build(BuildContext context) {
     final chapter = widget.book.audio[_chapter];
     return Material(
-      color: AppTheme.surface,
+      color: Theme.of(context).colorScheme.surfaceContainer,
       elevation: 8,
       shadowColor: Colors.black.withValues(alpha: .18),
       borderRadius: BorderRadius.circular(24),
@@ -131,13 +130,13 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
                   Container(
                     width: 40,
                     height: 40,
-                    decoration: const BoxDecoration(
-                      color: AppTheme.mint,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.graphic_eq_rounded,
-                      color: AppTheme.emerald,
+                      color: Theme.of(context).colorScheme.primary,
                     ),
                   ),
                   const SizedBox(width: 11),
@@ -243,7 +242,8 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
                         final playing = snapshot.data?.playing ?? false;
                         return IconButton.filled(
                           style: IconButton.styleFrom(
-                            backgroundColor: AppTheme.emerald,
+                            backgroundColor:
+                                Theme.of(context).colorScheme.primary,
                             foregroundColor: Colors.white,
                             minimumSize: const Size(52, 52),
                           ),

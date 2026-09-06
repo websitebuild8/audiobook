@@ -9,7 +9,14 @@ import '../widgets/book_cover.dart';
 import 'reader_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key});
+  const LibraryScreen({
+    super.key,
+    required this.darkMode,
+    required this.onToggleTheme,
+  });
+
+  final bool darkMode;
+  final VoidCallback onToggleTheme;
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -41,7 +48,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.canvas,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         bottom: false,
         child: FutureBuilder<List<Book>>(
@@ -80,12 +87,21 @@ class _LibraryScreenState extends State<LibraryScreen> {
             final categories =
                 books.map((book) => book.category).toSet().toList()..sort();
             final audioBooks = books.where((book) => book.hasAudio).toList();
-            final selectedTheme = CategoryTheme.forName(_category ?? '');
+            final selectedTheme = CategoryTheme.forName(
+              _category ?? '',
+              dark: Theme.of(context).brightness == Brightness.dark,
+            );
 
             return CustomScrollView(
               physics: const BouncingScrollPhysics(),
               slivers: [
-                SliverToBoxAdapter(child: _Header(bookCount: books.length)),
+                SliverToBoxAdapter(
+                  child: _Header(
+                    bookCount: books.length,
+                    darkMode: widget.darkMode,
+                    onToggleTheme: widget.onToggleTheme,
+                  ),
+                ),
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
@@ -192,9 +208,9 @@ class _ModernBottomNavigation extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
         child: DecoratedBox(
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: AppTheme.ink,
             borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: AppTheme.outline),
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
             boxShadow: [
               BoxShadow(
                 color: AppTheme.ink.withValues(alpha: .2),
@@ -255,6 +271,7 @@ class _NavigationItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
     return Semantics(
       selected: selected,
       button: true,
@@ -271,7 +288,11 @@ class _NavigationItem extends StatelessWidget {
               vertical: 10,
             ),
             decoration: BoxDecoration(
-              color: selected ? AppTheme.emerald : Colors.transparent,
+              color: selected
+                  ? (dark
+                      ? Theme.of(context).colorScheme.primary
+                      : Colors.white)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(18),
             ),
             child: Row(
@@ -279,7 +300,7 @@ class _NavigationItem extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  color: selected ? Colors.white : Colors.white60,
+                  color: selected && !dark ? AppTheme.emerald : Colors.white,
                   size: 23,
                 ),
                 AnimatedSize(
@@ -290,8 +311,10 @@ class _NavigationItem extends StatelessWidget {
                           padding: const EdgeInsetsDirectional.only(start: 8),
                           child: Text(
                             label,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: selected && !dark
+                                  ? AppTheme.ink
+                                  : Colors.white,
                               fontSize: 14,
                               fontWeight: FontWeight.w700,
                             ),
@@ -406,8 +429,8 @@ class _AudioBooksViewState extends State<_AudioBooksView> {
             child: _Pagination(
               currentPage: currentPage,
               pageCount: pageCount,
-              color: AppTheme.emerald,
-              tint: AppTheme.mint,
+              color: Theme.of(context).colorScheme.primary,
+              tint: Theme.of(context).colorScheme.primaryContainer,
               onSelected: (page) => setState(() => _page = page),
             ),
           ),
@@ -437,11 +460,11 @@ class _TabHeader extends StatelessWidget {
           Container(
             width: 48,
             height: 48,
-            decoration: const BoxDecoration(
-              color: AppTheme.mint,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, color: AppTheme.gold),
+            child: Icon(icon, color: Theme.of(context).colorScheme.secondary),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -468,8 +491,11 @@ class _AudioBooksEmptyState extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.headphones_rounded,
-              size: 54, color: AppTheme.emerald),
+          Icon(
+            Icons.headphones_rounded,
+            size: 54,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(height: 12),
           Text(
             'އޯޑިއޯ ފޮތެއް ނުފެނުނު',
@@ -597,14 +623,14 @@ class _BookmarksEmptyState extends StatelessWidget {
             Container(
               width: 82,
               height: 82,
-              decoration: const BoxDecoration(
-                color: AppTheme.mint,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.bookmark_add_outlined,
                 size: 38,
-                color: AppTheme.emerald,
+                color: Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 18),
@@ -626,8 +652,14 @@ class _BookmarksEmptyState extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.bookCount});
+  const _Header({
+    required this.bookCount,
+    required this.darkMode,
+    required this.onToggleTheme,
+  });
   final int bookCount;
+  final bool darkMode;
+  final VoidCallback onToggleTheme;
 
   @override
   Widget build(BuildContext context) {
@@ -665,12 +697,23 @@ class _Header extends StatelessWidget {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: AppTheme.surfaceHigh,
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
               shape: BoxShape.circle,
-              border: Border.all(color: AppTheme.outline),
+              border: Border.all(color: Theme.of(context).colorScheme.outline),
             ),
-            child: const Icon(Icons.auto_stories_rounded,
-                color: AppTheme.gold, size: 20),
+            child: IconButton(
+              tooltip: darkMode ? 'ލައިޓް މޯޑް' : 'ޑާކް މޯޑް',
+              onPressed: onToggleTheme,
+              icon: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: Icon(
+                  darkMode ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                  key: ValueKey(darkMode),
+                  color: Theme.of(context).colorScheme.secondary,
+                  size: 20,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -733,11 +776,16 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                   child: Container(
                     padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [AppTheme.mint, AppTheme.surface],
+                      gradient: LinearGradient(
+                        colors: [
+                          Theme.of(context).colorScheme.primaryContainer,
+                          Theme.of(context).colorScheme.surfaceContainer,
+                        ],
                       ),
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: AppTheme.outline),
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -748,10 +796,11 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Text(
+                              Text(
                                 'އޯޑިއޯ ފޮތް',
                                 style: TextStyle(
-                                  color: AppTheme.gold,
+                                  color:
+                                      Theme.of(context).colorScheme.secondary,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w700,
                                 ),
@@ -828,7 +877,10 @@ class _CategoryCards extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 12),
             itemBuilder: (context, index) {
               final category = categories[index];
-              final categoryTheme = CategoryTheme.forName(category);
+              final categoryTheme = CategoryTheme.forName(
+                category,
+                dark: Theme.of(context).brightness == Brightness.dark,
+              );
               final count =
                   books.where((book) => book.category == category).length;
               final isSelected = selected == category;
@@ -847,7 +899,9 @@ class _CategoryCards extends StatelessWidget {
                       gradient: LinearGradient(colors: categoryTheme.colors),
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(
-                        color: isSelected ? AppTheme.gold : Colors.transparent,
+                        color: isSelected
+                            ? Theme.of(context).colorScheme.secondary
+                            : Colors.transparent,
                         width: 3,
                       ),
                       boxShadow: [
@@ -940,7 +994,7 @@ class _BooksSectionHeader extends StatelessWidget {
           Text(
             '$bookCount',
             style: TextStyle(
-              color: AppTheme.gold,
+              color: Theme.of(context).colorScheme.secondary,
               fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
@@ -1073,9 +1127,9 @@ class _BookTile extends StatelessWidget {
         child: Ink(
           padding: const EdgeInsets.fromLTRB(10, 10, 10, 11),
           decoration: BoxDecoration(
-            color: AppTheme.surface,
+            color: Theme.of(context).colorScheme.surfaceContainer,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppTheme.outline),
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1103,13 +1157,15 @@ class _BookTile extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: AppTheme.ink.withValues(alpha: .88),
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: AppTheme.outline),
+                            border: Border.all(
+                              color: Theme.of(context).colorScheme.outline,
+                            ),
                           ),
-                          child: const Text(
+                          child: Text(
                             'އޯޑިއޯ',
                             textDirection: TextDirection.rtl,
                             style: TextStyle(
-                              color: AppTheme.gold,
+                              color: Theme.of(context).colorScheme.secondary,
                               fontSize: 10,
                               fontWeight: FontWeight.w800,
                             ),
@@ -1121,7 +1177,10 @@ class _BookTile extends StatelessWidget {
                         top: 0,
                         end: 0,
                         child: Material(
-                          color: AppTheme.surfaceHigh.withValues(alpha: .96),
+                          color: Theme.of(context)
+                              .colorScheme
+                              .surfaceContainerHigh
+                              .withValues(alpha: .96),
                           shape: const CircleBorder(),
                           elevation: 3,
                           child: IconButton(
@@ -1157,7 +1216,7 @@ class _BookTile extends StatelessWidget {
                         ? Icons.headphones_rounded
                         : Icons.menu_book_rounded,
                     size: 13,
-                    color: AppTheme.gold,
+                    color: Theme.of(context).colorScheme.secondary,
                   ),
                   const SizedBox(width: 5),
                   Expanded(

@@ -28,7 +28,9 @@ flutter:
     - books/Dar Al Fitya/
     - books/Markaz Al Meezan/
     - books/Markaz Al fursan/
+    - books/Other/
     - audios/Markaz Al Fursan/hukum masala rujoo'a vaa aslu/
+    - audios/other/Muzani/
   fonts:
     - family: Faseyha
       fonts:

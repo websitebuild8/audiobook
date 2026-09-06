@@ -2,81 +2,105 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
 abstract final class AppTheme {
-  static const ink = Color(0xFF050807);
-  static const emerald = Color(0xFF15866E);
-  static const mint = Color(0xFF163C32);
-  static const canvas = Color(0xFF070A09);
-  static const surface = Color(0xFF101513);
-  static const surfaceHigh = Color(0xFF171E1B);
-  static const outline = Color(0xFF28342F);
-  static const gold = Color(0xFF79D8B7);
+  static const ink = Color(0xFF173B36);
+  static const emerald = Color(0xFF0D6B5D);
+  static const mint = Color(0xFFDDF2EA);
+  static const canvas = Color(0xFFF6F7F3);
+  static const surface = Color(0xFFFFFFFF);
+  static const surfaceHigh = Color(0xFFEDF3EF);
+  static const outline = Color(0xFFD5E0DB);
+  static const gold = Color(0xFFD7A84D);
 
-  static ThemeData get light {
+  static const darkCanvas = Color(0xFF070A09);
+  static const darkSurface = Color(0xFF101513);
+  static const darkSurfaceHigh = Color(0xFF171E1B);
+  static const darkOutline = Color(0xFF28342F);
+  static const darkMint = Color(0xFF163C32);
+  static const darkGold = Color(0xFF79D8B7);
+
+  static ThemeData get light => _build(Brightness.light);
+  static ThemeData get dark => _build(Brightness.dark);
+
+  static ThemeData _build(Brightness brightness) {
+    final isDark = brightness == Brightness.dark;
     final scheme = ColorScheme.fromSeed(
       seedColor: emerald,
-      brightness: Brightness.dark,
-      primary: emerald,
-      surface: canvas,
+      brightness: brightness,
+      primary: isDark ? const Color(0xFF52C6A4) : emerald,
+      secondary: isDark ? darkGold : gold,
+      surface: isDark ? darkCanvas : canvas,
+      outline: isDark ? darkOutline : outline,
+    ).copyWith(
+      surfaceContainer: isDark ? darkSurface : surface,
+      surfaceContainerHigh: isDark ? darkSurfaceHigh : surfaceHigh,
+      primaryContainer: isDark ? darkMint : mint,
+      onPrimaryContainer: isDark ? const Color(0xFFD9FFF1) : ink,
     );
+
+    final primaryText = isDark ? Colors.white : ink;
+    final secondaryText =
+        isDark ? const Color(0xFF9EADA7) : const Color(0xFF49635F);
+
     return ThemeData(
       useMaterial3: true,
+      brightness: brightness,
       colorScheme: scheme,
-      scaffoldBackgroundColor: canvas,
+      scaffoldBackgroundColor: scheme.surface,
       fontFamily: 'Faseyha',
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         displaySmall: TextStyle(
           fontSize: 36,
           height: 1.25,
           fontWeight: FontWeight.w700,
-          color: Colors.white,
+          color: primaryText,
         ),
         headlineSmall: TextStyle(
           fontSize: 25,
           height: 1.35,
           fontWeight: FontWeight.w700,
-          color: Colors.white,
+          color: primaryText,
         ),
         titleLarge: TextStyle(
           fontSize: 21,
           height: 1.45,
           fontWeight: FontWeight.w700,
-          color: Colors.white,
+          color: primaryText,
         ),
         titleMedium: TextStyle(
           fontSize: 18,
           height: 1.45,
           fontWeight: FontWeight.w600,
-          color: Colors.white,
+          color: primaryText,
         ),
-        bodyLarge: TextStyle(fontSize: 17, height: 1.55, color: Colors.white),
+        bodyLarge: TextStyle(fontSize: 17, height: 1.55, color: primaryText),
         bodyMedium: TextStyle(
           fontSize: 15,
           height: 1.5,
-          color: Color(0xFF9EADA7),
+          color: secondaryText,
         ),
-        labelLarge: TextStyle(
+        labelLarge: const TextStyle(
           fontSize: 15,
           height: 1.4,
           fontWeight: FontWeight.w700,
         ),
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: canvas,
-        foregroundColor: Colors.white,
+      appBarTheme: AppBarTheme(
+        backgroundColor: scheme.surface,
+        foregroundColor: primaryText,
         surfaceTintColor: Colors.transparent,
         centerTitle: false,
       ),
       cardTheme: CardThemeData(
         elevation: 0,
-        color: surface,
+        color: scheme.surfaceContainer,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: surfaceHigh,
-        hintStyle: const TextStyle(color: Color(0xFF74817C)),
-        prefixIconColor: const Color(0xFF93A19C),
+        fillColor: scheme.surfaceContainerHigh,
+        hintStyle: TextStyle(color: secondaryText.withValues(alpha: .72)),
+        prefixIconColor: secondaryText,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,
@@ -87,13 +111,13 @@ abstract final class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: emerald, width: 1.5),
+          borderSide: BorderSide(color: scheme.primary, width: 1.5),
         ),
       ),
-      dividerColor: outline,
-      snackBarTheme: const SnackBarThemeData(
-        backgroundColor: surfaceHigh,
-        contentTextStyle: TextStyle(color: Colors.white),
+      dividerColor: scheme.outline,
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: scheme.surfaceContainerHigh,
+        contentTextStyle: TextStyle(color: primaryText),
       ),
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
