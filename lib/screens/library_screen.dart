@@ -51,136 +51,177 @@ class _LibraryScreenState extends State<LibraryScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         bottom: false,
-        child: FutureBuilder<List<Book>>(
-          future: _catalog,
-          builder: (context, snapshot) {
-            if (snapshot.hasError) {
-              return _ErrorState(onRetry: () => setState(() {}));
-            }
-            if (!snapshot.hasData) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            final books = snapshot.data!;
-            if (_tabIndex == 2) {
-              return _BookmarksView(books: books, onOpen: _open);
-            }
-            if (_tabIndex == 1) {
-              return _AudioBooksView(books: books, onOpen: _open);
-            }
-            final query = _search.text.trim().toLowerCase();
-            final filtered = books.where((book) {
-              final matchesCategory =
-                  _category == null || book.category == _category;
-              final matchesSearch = query.isEmpty ||
-                  book.title.toLowerCase().contains(query) ||
-                  book.category.toLowerCase().contains(query);
-              return matchesCategory && matchesSearch;
-            }).toList();
-            final pageCount = (filtered.length / _booksPerPage).ceil();
-            final currentPage =
-                pageCount == 0 ? 0 : _bookPage.clamp(0, pageCount - 1);
-            final pageStart = currentPage * _booksPerPage;
-            final visibleBooks = filtered
-                .skip(pageStart)
-                .take(_booksPerPage)
-                .toList(growable: false);
-            final categories =
-                books.map((book) => book.category).toSet().toList()..sort();
-            final audioBooks = books.where((book) => book.hasAudio).toList();
-            final selectedTheme = CategoryTheme.forName(
-              _category ?? '',
-              dark: Theme.of(context).brightness == Brightness.dark,
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 360),
+          reverseDuration: const Duration(milliseconds: 280),
+          switchInCurve: Curves.easeOutCubic,
+          switchOutCurve: Curves.easeInCubic,
+          transitionBuilder: (child, animation) {
+            final fade = CurvedAnimation(
+              parent: animation,
+              curve: const Interval(0.12, 1),
             );
-
-            return CustomScrollView(
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                SliverToBoxAdapter(
-                  child: _Header(
-                    bookCount: books.length,
-                    darkMode: widget.darkMode,
-                    onToggleTheme: widget.onToggleTheme,
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                    child: TextField(
-                      controller: _search,
-                      onChanged: (_) => setState(() => _bookPage = 0),
-                      textInputAction: TextInputAction.search,
-                      decoration: InputDecoration(
-                        hintText: ' ހޯދާ...',
-                        prefixIcon: const Icon(Icons.search_rounded),
-                        suffixIcon: query.isEmpty
-                            ? null
-                            : IconButton(
-                                onPressed: () {
-                                  _search.clear();
-                                  setState(() => _bookPage = 0);
-                                },
-                                icon: const Icon(Icons.close_rounded),
-                              ),
-                      ),
-                    ),
-                  ),
-                ),
-                if (audioBooks.isNotEmpty && query.isEmpty && _category == null)
-                  SliverToBoxAdapter(
-                    child: _FeaturedCarousel(books: audioBooks, onOpen: _open),
-                  ),
-                SliverToBoxAdapter(
-                  child: _CategoryCards(
-                    categories: categories,
-                    books: books,
-                    selected: _category,
-                    onSelected: (category) => setState(() {
-                      _category = _category == category ? null : category;
-                      _bookPage = 0;
-                    }),
-                  ),
-                ),
-                SliverToBoxAdapter(
-                  child: _BooksSectionHeader(
-                    category: _category,
-                    bookCount: filtered.length,
-                    theme: selectedTheme,
-                  ),
-                ),
-                SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
-                  sliver: filtered.isEmpty
-                      ? const SliverToBoxAdapter(child: _EmptyState())
-                      : SliverGrid.builder(
-                          key: ValueKey('$query-$_category-$currentPage'),
-                          itemCount: visibleBooks.length,
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            mainAxisSpacing: 12,
-                            crossAxisSpacing: 12,
-                            childAspectRatio: .58,
-                          ),
-                          itemBuilder: (context, index) => _BookTile(
-                            book: visibleBooks[index],
-                            onTap: () => _open(visibleBooks[index]),
-                          ),
-                        ),
-                ),
-                if (pageCount > 1)
-                  SliverToBoxAdapter(
-                    child: _Pagination(
-                      currentPage: currentPage,
-                      pageCount: pageCount,
-                      color: selectedTheme.primary,
-                      tint: selectedTheme.tint,
-                      onSelected: (page) => setState(() => _bookPage = page),
-                    ),
-                  ),
-                const SliverToBoxAdapter(child: SizedBox(height: 18)),
-              ],
+            return FadeTransition(
+              opacity: fade,
+              child: SlideTransition(
+                position: Tween<Offset>(
+                  begin: const Offset(.035, 0),
+                  end: Offset.zero,
+                ).animate(animation),
+                child: child,
+              ),
             );
           },
+          child: KeyedSubtree(
+            key: ValueKey(_tabIndex),
+            child: FutureBuilder<List<Book>>(
+              future: _catalog,
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return _ErrorState(onRetry: () => setState(() {}));
+                }
+                if (!snapshot.hasData) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                final books = snapshot.data!;
+                if (_tabIndex == 2) {
+                  return _BookmarksView(books: books, onOpen: _open);
+                }
+                if (_tabIndex == 1) {
+                  return _AudioBooksView(books: books, onOpen: _open);
+                }
+                final query = _search.text.trim().toLowerCase();
+                final filtered = books.where((book) {
+                  final matchesCategory =
+                      _category == null || book.category == _category;
+                  final matchesSearch = query.isEmpty ||
+                      book.title.toLowerCase().contains(query) ||
+                      book.category.toLowerCase().contains(query);
+                  return matchesCategory && matchesSearch;
+                }).toList();
+                final pageCount = (filtered.length / _booksPerPage).ceil();
+                final currentPage =
+                    pageCount == 0 ? 0 : _bookPage.clamp(0, pageCount - 1);
+                final pageStart = currentPage * _booksPerPage;
+                final visibleBooks = filtered
+                    .skip(pageStart)
+                    .take(_booksPerPage)
+                    .toList(growable: false);
+                // Preserve catalogue insertion order: older categories begin on the
+                // right in this RTL list and newly added categories extend left.
+                // "Other" is always kept at the far-left end.
+                final categories = <String>[];
+                for (final book in books) {
+                  if (!categories.contains(book.category)) {
+                    categories.add(book.category);
+                  }
+                }
+                const otherCategory = 'އެހެނިހެން';
+                if (categories.remove(otherCategory)) {
+                  categories.add(otherCategory);
+                }
+                final audioBooks =
+                    books.where((book) => book.hasAudio).toList();
+                final selectedTheme = CategoryTheme.forName(
+                  _category ?? '',
+                  dark: Theme.of(context).brightness == Brightness.dark,
+                );
+
+                return CustomScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: _Header(
+                        bookCount: books.length,
+                        darkMode: widget.darkMode,
+                        onToggleTheme: widget.onToggleTheme,
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                        child: TextField(
+                          controller: _search,
+                          onChanged: (_) => setState(() => _bookPage = 0),
+                          textInputAction: TextInputAction.search,
+                          decoration: InputDecoration(
+                            hintText: ' ހޯދާ...',
+                            prefixIcon: const Icon(Icons.search_rounded),
+                            suffixIcon: query.isEmpty
+                                ? null
+                                : IconButton(
+                                    onPressed: () {
+                                      _search.clear();
+                                      setState(() => _bookPage = 0);
+                                    },
+                                    icon: const Icon(Icons.close_rounded),
+                                  ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (audioBooks.isNotEmpty &&
+                        query.isEmpty &&
+                        _category == null)
+                      SliverToBoxAdapter(
+                        child:
+                            _FeaturedCarousel(books: audioBooks, onOpen: _open),
+                      ),
+                    SliverToBoxAdapter(
+                      child: _CategoryCards(
+                        categories: categories,
+                        books: books,
+                        selected: _category,
+                        onSelected: (category) => setState(() {
+                          _category = _category == category ? null : category;
+                          _bookPage = 0;
+                        }),
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: _BooksSectionHeader(
+                        category: _category,
+                        bookCount: filtered.length,
+                        theme: selectedTheme,
+                      ),
+                    ),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
+                      sliver: filtered.isEmpty
+                          ? const SliverToBoxAdapter(child: _EmptyState())
+                          : SliverGrid.builder(
+                              key: ValueKey('$query-$_category-$currentPage'),
+                              itemCount: visibleBooks.length,
+                              gridDelegate:
+                                  const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 2,
+                                mainAxisSpacing: 12,
+                                crossAxisSpacing: 12,
+                                childAspectRatio: .58,
+                              ),
+                              itemBuilder: (context, index) => _BookTile(
+                                book: visibleBooks[index],
+                                onTap: () => _open(visibleBooks[index]),
+                              ),
+                            ),
+                    ),
+                    if (pageCount > 1)
+                      SliverToBoxAdapter(
+                        child: _Pagination(
+                          currentPage: currentPage,
+                          pageCount: pageCount,
+                          color: selectedTheme.primary,
+                          tint: selectedTheme.tint,
+                          onSelected: (page) =>
+                              setState(() => _bookPage = page),
+                        ),
+                      ),
+                    const SliverToBoxAdapter(child: SizedBox(height: 18)),
+                  ],
+                );
+              },
+            ),
+          ),
         ),
       ),
       bottomNavigationBar: _ModernBottomNavigation(
@@ -284,8 +325,8 @@ class _NavigationItem extends StatelessWidget {
             duration: const Duration(milliseconds: 240),
             curve: Curves.easeOutCubic,
             padding: EdgeInsets.symmetric(
-              horizontal: selected ? 18 : 14,
-              vertical: 10,
+              horizontal: 18,
+              vertical: 11,
             ),
             decoration: BoxDecoration(
               color: selected
@@ -295,34 +336,10 @@ class _NavigationItem extends StatelessWidget {
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(18),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  icon,
-                  color: selected && !dark ? AppTheme.emerald : Colors.white,
-                  size: 23,
-                ),
-                AnimatedSize(
-                  duration: const Duration(milliseconds: 220),
-                  curve: Curves.easeOutCubic,
-                  child: selected
-                      ? Padding(
-                          padding: const EdgeInsetsDirectional.only(start: 8),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: selected && !dark
-                                  ? AppTheme.ink
-                                  : Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        )
-                      : const SizedBox.shrink(),
-                ),
-              ],
+            child: Icon(
+              icon,
+              color: selected && !dark ? AppTheme.emerald : Colors.white,
+              size: 24,
             ),
           ),
         ),
