@@ -13,9 +13,14 @@ import { Media } from './collections/Media'
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
 const useR2 = Boolean(process.env.S3_BUCKET && process.env.S3_ACCESS_KEY_ID && process.env.S3_SECRET_ACCESS_KEY)
+const publicMediaURL = process.env.NEXT_PUBLIC_MEDIA_URL?.replace(/\/$/, '')
+const serverURL = process.env.NEXT_PUBLIC_SERVER_URL ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL
+    ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+    : 'http://localhost:3000')
 
 export default buildConfig({
-  serverURL: process.env.NEXT_PUBLIC_SERVER_URL,
+  serverURL,
   secret: process.env.PAYLOAD_SECRET || '',
   admin: {
     user: Admins.slug,
@@ -64,7 +69,16 @@ export default buildConfig({
   plugins: [
     s3Storage({
       enabled: useR2,
-      collections: { media: { prefix: 'library' } },
+      collections: {
+        media: {
+          prefix: 'library',
+          disablePayloadAccessControl: true,
+          generateFileURL: ({ filename, prefix }) => {
+            const key = prefix ? `${prefix}/${filename}` : filename
+            return publicMediaURL ? `${publicMediaURL}/${key}` : `${serverURL}/api/media/file/${filename}`
+          },
+        },
+      },
       bucket: process.env.S3_BUCKET || '',
       clientUploads: true,
       config: {
@@ -73,6 +87,7 @@ export default buildConfig({
           secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
         },
         endpoint: process.env.S3_ENDPOINT,
+        forcePathStyle: true,
         region: process.env.S3_REGION || 'auto',
       },
     }),

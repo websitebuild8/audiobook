@@ -37,3 +37,13 @@ GET /api/categories?where[active][equals]=true&limit=100&sort=order
 ```
 
 The Flutter integration should be added after this dashboard is running at a stable public URL. Until then, the existing bundled catalogue continues to work unchanged.
+
+## Deploying to Vercel
+
+1. Import the GitHub repository and set the Vercel **Root Directory** to `admin`.
+2. Keep the framework preset as **Next.js** and the build command as `npm run build`.
+3. Add every value from `.env.example` in Vercel Project Settings > Environment Variables.
+4. Set `NEXT_PUBLIC_SERVER_URL` to the final Vercel URL, such as `https://your-project.vercel.app`.
+5. Add that same URL to the R2 CORS `AllowedOrigins` list while retaining `http://localhost:3000` for local development.
+
+Media URLs point directly to the public R2 domain, so PDFs and audio do not pass through Vercel functions.
