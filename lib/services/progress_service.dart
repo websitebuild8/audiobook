@@ -1,6 +1,22 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
+class RecentRead {
+  const RecentRead({
+    required this.bookId,
+    required this.page,
+    required this.openedAt,
+  });
+
+  final String bookId;
+  final int page;
+  final DateTime openedAt;
+}
+
 abstract final class ProgressService {
+  static const _recentReadsKey = 'recent_reads_v1';
+  static const _recentReadsLimit = 3;
   static String _pageKey(String bookId) => 'page::$bookId';
   static String _bookmarkKey(String bookId, int page) =>
       'bookmark::$bookId::$page';
@@ -15,6 +31,82 @@ abstract final class ProgressService {
   static Future<void> savePage(String bookId, int page) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_pageKey(bookId), page);
+    final recent = _readRecent(prefs);
+    final index = recent.indexWhere((item) => item.bookId == bookId);
+    if (index < 0) return;
+    final current = recent[index];
+    recent[index] = RecentRead(
+      bookId: bookId,
+      page: page,
+      openedAt: current.openedAt,
+    );
+    await _writeRecent(prefs, recent);
+  }
+
+  static Future<void> recordBookOpened(String bookId, int page) async {
+    final prefs = await SharedPreferences.getInstance();
+    final recent = _readRecent(prefs)
+      ..removeWhere((item) => item.bookId == bookId)
+      ..insert(
+        0,
+        RecentRead(
+          bookId: bookId,
+          page: page < 1 ? 1 : page,
+          openedAt: DateTime.now(),
+        ),
+      );
+    await _writeRecent(prefs, recent.take(_recentReadsLimit).toList());
+  }
+
+  static Future<List<RecentRead>> recentReads() async {
+    final prefs = await SharedPreferences.getInstance();
+    return _readRecent(prefs).take(_recentReadsLimit).toList(growable: false);
+  }
+
+  static List<RecentRead> _readRecent(SharedPreferences prefs) {
+    final raw = prefs.getString(_recentReadsKey);
+    if (raw == null || raw.isEmpty) return <RecentRead>[];
+    try {
+      final values = jsonDecode(raw) as List<dynamic>;
+      return values
+          .whereType<Map<String, dynamic>>()
+          .map((value) {
+            final bookId = value['bookId'];
+            final page = value['page'];
+            final openedAt = value['openedAt'];
+            if (bookId is! String || page is! int || openedAt is! int) {
+              return null;
+            }
+            return RecentRead(
+              bookId: bookId,
+              page: page < 1 ? 1 : page,
+              openedAt: DateTime.fromMillisecondsSinceEpoch(openedAt),
+            );
+          })
+          .whereType<RecentRead>()
+          .toList();
+    } on FormatException {
+      return <RecentRead>[];
+    } on TypeError {
+      return <RecentRead>[];
+    }
+  }
+
+  static Future<void> _writeRecent(
+    SharedPreferences prefs,
+    List<RecentRead> recent,
+  ) async {
+    await prefs.setString(
+      _recentReadsKey,
+      jsonEncode([
+        for (final item in recent)
+          {
+            'bookId': item.bookId,
+            'page': item.page,
+            'openedAt': item.openedAt.millisecondsSinceEpoch,
+          },
+      ]),
+    );
   }
 
   static Future<bool> isBookmarked(String bookId, int page) async {

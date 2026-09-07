@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/book.dart';
 import '../services/catalog_service.dart';
+import '../services/download_service.dart';
 import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/category_theme.dart';
@@ -24,7 +25,7 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   static const _booksPerPage = 10;
-  late final Future<List<Book>> _catalog = CatalogService.load();
+  late Future<List<Book>> _catalog = CatalogService.load();
   final _search = TextEditingController();
   String? _category;
   int _tabIndex = 0;
@@ -37,12 +38,70 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _open(Book book, [int? initialPage]) async {
+    final localBook = await DownloadService.instance.localBook(book);
+    if (!mounted) return;
+    if (localBook == null) {
+      await _showDownloadPrompt(book);
+      return;
+    }
     await Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (_) => ReaderScreen(book: book, initialPage: initialPage),
+        builder: (_) => ReaderScreen(book: localBook, initialPage: initialPage),
       ),
     );
     if (mounted) setState(() {});
+  }
+
+  Future<void> _showDownloadPrompt(Book book) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(22, 4, 22, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'ފޮތް ޑައުންލޯޑުކުރައްވާ',
+                style: Theme.of(context).textTheme.titleLarge,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                book.hasAudio
+                    ? 'PDF އާއި ${book.audio.length} އޯޑިއޯ ބައި ޑައުންލޯޑުވާނެ. ދެން އޮފްލައިންގައި ކިޔައި އަޑުއެހިދާނެ.'
+                    : 'PDF ޑައުންލޯޑުވުމުން އޮފްލައިންގައި ކިޔެވޭނެ.',
+                style: Theme.of(context).textTheme.bodyLarge,
+              ),
+              if (book.totalDownloadSize > 0) ...[
+                const SizedBox(height: 8),
+                Text(
+                  _formatBytes(book.totalDownloadSize),
+                  textDirection: TextDirection.ltr,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.pop(sheetContext);
+                  DownloadService.instance.download(book);
+                },
+                icon: const Icon(Icons.download_rounded),
+                label: const Text('ޑައުންލޯޑުކުރައްވާ'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _refreshCatalog() async {
+    final refreshed = CatalogService.load(refresh: true);
+    setState(() => _catalog = refreshed);
+    await refreshed;
   }
 
   @override
@@ -51,175 +110,183 @@ class _LibraryScreenState extends State<LibraryScreen> {
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         bottom: false,
-        child: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 360),
-          reverseDuration: const Duration(milliseconds: 280),
-          switchInCurve: Curves.easeOutCubic,
-          switchOutCurve: Curves.easeInCubic,
-          transitionBuilder: (child, animation) {
-            final fade = CurvedAnimation(
-              parent: animation,
-              curve: const Interval(0.12, 1),
-            );
-            return FadeTransition(
-              opacity: fade,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: const Offset(.035, 0),
-                  end: Offset.zero,
-                ).animate(animation),
-                child: child,
-              ),
-            );
-          },
-          child: KeyedSubtree(
-            key: ValueKey(_tabIndex),
-            child: FutureBuilder<List<Book>>(
-              future: _catalog,
-              builder: (context, snapshot) {
-                if (snapshot.hasError) {
-                  return _ErrorState(onRetry: () => setState(() {}));
-                }
-                if (!snapshot.hasData) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                final books = snapshot.data!;
-                if (_tabIndex == 2) {
-                  return _BookmarksView(books: books, onOpen: _open);
-                }
-                if (_tabIndex == 1) {
-                  return _AudioBooksView(books: books, onOpen: _open);
-                }
-                final query = _search.text.trim().toLowerCase();
-                final filtered = books.where((book) {
-                  final matchesCategory =
-                      _category == null || book.category == _category;
-                  final matchesSearch = query.isEmpty ||
-                      book.title.toLowerCase().contains(query) ||
-                      book.category.toLowerCase().contains(query);
-                  return matchesCategory && matchesSearch;
-                }).toList();
-                final pageCount = (filtered.length / _booksPerPage).ceil();
-                final currentPage =
-                    pageCount == 0 ? 0 : _bookPage.clamp(0, pageCount - 1);
-                final pageStart = currentPage * _booksPerPage;
-                final visibleBooks = filtered
-                    .skip(pageStart)
-                    .take(_booksPerPage)
-                    .toList(growable: false);
-                // Preserve catalogue insertion order: older categories begin on the
-                // right in this RTL list and newly added categories extend left.
-                // "Other" is always kept at the far-left end.
-                final categories = <String>[];
-                for (final book in books) {
-                  if (!categories.contains(book.category)) {
-                    categories.add(book.category);
+        child: RefreshIndicator(
+          onRefresh: _refreshCatalog,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 360),
+            reverseDuration: const Duration(milliseconds: 280),
+            switchInCurve: Curves.easeOutCubic,
+            switchOutCurve: Curves.easeInCubic,
+            transitionBuilder: (child, animation) {
+              final fade = CurvedAnimation(
+                parent: animation,
+                curve: const Interval(0.12, 1),
+              );
+              return FadeTransition(
+                opacity: fade,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(.035, 0),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              );
+            },
+            child: KeyedSubtree(
+              key: ValueKey(_tabIndex),
+              child: FutureBuilder<List<Book>>(
+                future: _catalog,
+                builder: (context, snapshot) {
+                  if (snapshot.hasError) {
+                    return _ErrorState(onRetry: () => setState(() {}));
                   }
-                }
-                const otherCategory = 'އެހެނިހެން';
-                if (categories.remove(otherCategory)) {
-                  categories.add(otherCategory);
-                }
-                final audioBooks =
-                    books.where((book) => book.hasAudio).toList();
-                final selectedTheme = CategoryTheme.forName(
-                  _category ?? '',
-                  dark: Theme.of(context).brightness == Brightness.dark,
-                );
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  final books = snapshot.data!;
+                  if (_tabIndex == 3) {
+                    return _RecentReadsView(books: books, onOpen: _open);
+                  }
+                  if (_tabIndex == 2) {
+                    return _BookmarksView(books: books, onOpen: _open);
+                  }
+                  if (_tabIndex == 1) {
+                    return _AudioBooksView(books: books, onOpen: _open);
+                  }
+                  final query = _search.text.trim().toLowerCase();
+                  final filtered = books.where((book) {
+                    final matchesCategory =
+                        _category == null || book.category == _category;
+                    final matchesSearch = query.isEmpty ||
+                        book.title.toLowerCase().contains(query) ||
+                        book.category.toLowerCase().contains(query);
+                    return matchesCategory && matchesSearch;
+                  }).toList();
+                  final pageCount = (filtered.length / _booksPerPage).ceil();
+                  final currentPage =
+                      pageCount == 0 ? 0 : _bookPage.clamp(0, pageCount - 1);
+                  final pageStart = currentPage * _booksPerPage;
+                  final visibleBooks = filtered
+                      .skip(pageStart)
+                      .take(_booksPerPage)
+                      .toList(growable: false);
+                  // Preserve catalogue insertion order: older categories begin on the
+                  // right in this RTL list and newly added categories extend left.
+                  // "Other" is always kept at the far-left end.
+                  final categories = <String>[];
+                  for (final book in books) {
+                    if (!categories.contains(book.category)) {
+                      categories.add(book.category);
+                    }
+                  }
+                  const otherCategory = 'އެހެނިހެން';
+                  if (categories.remove(otherCategory)) {
+                    categories.add(otherCategory);
+                  }
+                  final audioBooks =
+                      books.where((book) => book.hasAudio).toList();
+                  final selectedTheme = CategoryTheme.forName(
+                    _category ?? '',
+                    dark: Theme.of(context).brightness == Brightness.dark,
+                  );
 
-                return CustomScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  slivers: [
-                    SliverToBoxAdapter(
-                      child: _Header(
-                        bookCount: books.length,
-                        darkMode: widget.darkMode,
-                        onToggleTheme: widget.onToggleTheme,
-                      ),
+                  return CustomScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
                     ),
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
-                        child: TextField(
-                          controller: _search,
-                          onChanged: (_) => setState(() => _bookPage = 0),
-                          textInputAction: TextInputAction.search,
-                          decoration: InputDecoration(
-                            hintText: ' ހޯދާ...',
-                            prefixIcon: const Icon(Icons.search_rounded),
-                            suffixIcon: query.isEmpty
-                                ? null
-                                : IconButton(
-                                    onPressed: () {
-                                      _search.clear();
-                                      setState(() => _bookPage = 0);
-                                    },
-                                    icon: const Icon(Icons.close_rounded),
-                                  ),
+                    slivers: [
+                      SliverToBoxAdapter(
+                        child: _Header(
+                          bookCount: books.length,
+                          darkMode: widget.darkMode,
+                          onToggleTheme: widget.onToggleTheme,
+                        ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+                          child: TextField(
+                            controller: _search,
+                            onChanged: (_) => setState(() => _bookPage = 0),
+                            textInputAction: TextInputAction.search,
+                            decoration: InputDecoration(
+                              hintText: ' ހޯދާ...',
+                              prefixIcon: const Icon(Icons.search_rounded),
+                              suffixIcon: query.isEmpty
+                                  ? null
+                                  : IconButton(
+                                      onPressed: () {
+                                        _search.clear();
+                                        setState(() => _bookPage = 0);
+                                      },
+                                      icon: const Icon(Icons.close_rounded),
+                                    ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    if (audioBooks.isNotEmpty &&
-                        query.isEmpty &&
-                        _category == null)
+                      if (audioBooks.isNotEmpty &&
+                          query.isEmpty &&
+                          _category == null)
+                        SliverToBoxAdapter(
+                          child: _FeaturedCarousel(
+                              books: audioBooks, onOpen: _open),
+                        ),
                       SliverToBoxAdapter(
-                        child:
-                            _FeaturedCarousel(books: audioBooks, onOpen: _open),
-                      ),
-                    SliverToBoxAdapter(
-                      child: _CategoryCards(
-                        categories: categories,
-                        books: books,
-                        selected: _category,
-                        onSelected: (category) => setState(() {
-                          _category = _category == category ? null : category;
-                          _bookPage = 0;
-                        }),
-                      ),
-                    ),
-                    SliverToBoxAdapter(
-                      child: _BooksSectionHeader(
-                        category: _category,
-                        bookCount: filtered.length,
-                        theme: selectedTheme,
-                      ),
-                    ),
-                    SliverPadding(
-                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
-                      sliver: filtered.isEmpty
-                          ? const SliverToBoxAdapter(child: _EmptyState())
-                          : SliverGrid.builder(
-                              key: ValueKey('$query-$_category-$currentPage'),
-                              itemCount: visibleBooks.length,
-                              gridDelegate:
-                                  const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 2,
-                                mainAxisSpacing: 12,
-                                crossAxisSpacing: 12,
-                                childAspectRatio: .58,
-                              ),
-                              itemBuilder: (context, index) => _BookTile(
-                                book: visibleBooks[index],
-                                onTap: () => _open(visibleBooks[index]),
-                              ),
-                            ),
-                    ),
-                    if (pageCount > 1)
-                      SliverToBoxAdapter(
-                        child: _Pagination(
-                          currentPage: currentPage,
-                          pageCount: pageCount,
-                          color: selectedTheme.primary,
-                          tint: selectedTheme.tint,
-                          onSelected: (page) =>
-                              setState(() => _bookPage = page),
+                        child: _CategoryCards(
+                          categories: categories,
+                          books: books,
+                          selected: _category,
+                          onSelected: (category) => setState(() {
+                            _category = _category == category ? null : category;
+                            _bookPage = 0;
+                          }),
                         ),
                       ),
-                    const SliverToBoxAdapter(child: SizedBox(height: 18)),
-                  ],
-                );
-              },
+                      SliverToBoxAdapter(
+                        child: _BooksSectionHeader(
+                          category: _category,
+                          bookCount: filtered.length,
+                          theme: selectedTheme,
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 28),
+                        sliver: filtered.isEmpty
+                            ? const SliverToBoxAdapter(child: _EmptyState())
+                            : SliverGrid.builder(
+                                key: ValueKey('$query-$_category-$currentPage'),
+                                itemCount: visibleBooks.length,
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: 2,
+                                  mainAxisSpacing: 12,
+                                  crossAxisSpacing: 12,
+                                  childAspectRatio: .58,
+                                ),
+                                itemBuilder: (context, index) => _BookTile(
+                                  book: visibleBooks[index],
+                                  onTap: () => _open(visibleBooks[index]),
+                                ),
+                              ),
+                      ),
+                      if (pageCount > 1)
+                        SliverToBoxAdapter(
+                          child: _Pagination(
+                            currentPage: currentPage,
+                            pageCount: pageCount,
+                            color: selectedTheme.primary,
+                            tint: selectedTheme.tint,
+                            onSelected: (page) =>
+                                setState(() => _bookPage = page),
+                          ),
+                        ),
+                      const SliverToBoxAdapter(child: SizedBox(height: 18)),
+                    ],
+                  );
+                },
+              ),
             ),
           ),
         ),
@@ -288,9 +355,220 @@ class _ModernBottomNavigation extends StatelessWidget {
                     onTap: () => onSelected(2),
                   ),
                 ),
+                Expanded(
+                  child: _NavigationItem(
+                    label: 'ފަހުން ކިޔެވުނު',
+                    icon: Icons.history_rounded,
+                    selected: selectedIndex == 3,
+                    onTap: () => onSelected(3),
+                  ),
+                ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentReadsView extends StatelessWidget {
+  const _RecentReadsView({required this.books, required this.onOpen});
+
+  final List<Book> books;
+  final void Function(Book book, [int? initialPage]) onOpen;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<RecentRead>>(
+      future: ProgressService.recentReads(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        final booksById = {for (final book in books) book.id: book};
+        final items = [
+          for (final recent in snapshot.data!)
+            if (booksById[recent.bookId] case final Book book)
+              (book: book, recent: recent),
+        ];
+
+        return CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
+          slivers: [
+            SliverToBoxAdapter(
+              child: _TabHeader(
+                icon: Icons.history_rounded,
+                title: 'ފަހުން ކިޔެވުނު',
+                subtitle: '${items.length} ފޮތް',
+              ),
+            ),
+            if (items.isEmpty)
+              const SliverFillRemaining(
+                hasScrollBody: false,
+                child: _RecentReadsEmptyState(),
+              )
+            else
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(18, 4, 18, 28),
+                sliver: SliverList.separated(
+                  itemCount: items.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 12),
+                  itemBuilder: (context, index) {
+                    final item = items[index];
+                    return _RecentReadCard(
+                      book: item.book,
+                      recent: item.recent,
+                      onTap: () => onOpen(item.book, item.recent.page),
+                    );
+                  },
+                ),
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _RecentReadCard extends StatelessWidget {
+  const _RecentReadCard({
+    required this.book,
+    required this.recent,
+    required this.onTap,
+  });
+
+  final Book book;
+  final RecentRead recent;
+  final VoidCallback onTap;
+
+  String _timeLabel() {
+    final elapsed = DateTime.now().difference(recent.openedAt);
+    if (elapsed.inMinutes < 1) return 'މިހާރު';
+    if (elapsed.inHours < 1) return '${elapsed.inMinutes} މިނިޓް ކުރިން';
+    if (elapsed.inDays < 1) return '${elapsed.inHours} ގަޑިއިރު ކުރިން';
+    if (elapsed.inDays == 1) return 'އިއްޔެ';
+    return '${elapsed.inDays} ދުވަސް ކުރިން';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Theme.of(context).colorScheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(22),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          height: 154,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            border: Border.all(color: Theme.of(context).colorScheme.outline),
+            borderRadius: BorderRadius.circular(22),
+          ),
+          child: Row(
+            children: [
+              SizedBox(width: 92, child: BookCover(book: book, compact: true)),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      book.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      book.category,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.schedule_rounded,
+                          size: 16,
+                          color: Theme.of(context).colorScheme.secondary,
+                        ),
+                        const SizedBox(width: 5),
+                        Expanded(
+                          child: Text(
+                            '${_timeLabel()} • ޞަފްޙާ ${recent.page}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                        Container(
+                          width: 34,
+                          height: 34,
+                          decoration: BoxDecoration(
+                            color: Theme.of(context).colorScheme.primary,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.arrow_back_rounded,
+                            color: Colors.white,
+                            size: 19,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentReadsEmptyState extends StatelessWidget {
+  const _RecentReadsEmptyState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(34),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 82,
+              height: 82,
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.history_rounded,
+                size: 40,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'ކިޔެވި ފޮތެއް ނެތް',
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 7),
+            Text(
+              'ފޮތެއް ހުޅުވުމުން މިތާ ފެންނާނެ',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          ],
         ),
       ),
     );
@@ -386,7 +664,9 @@ class _AudioBooksViewState extends State<_AudioBooksView> {
         .toList(growable: false);
 
     return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
       slivers: [
         SliverToBoxAdapter(
           child: _TabHeader(
@@ -571,7 +851,9 @@ class _BookmarksViewState extends State<_BookmarksView> {
         ];
 
         return CustomScrollView(
-          physics: const BouncingScrollPhysics(),
+          physics: const AlwaysScrollableScrollPhysics(
+            parent: BouncingScrollPhysics(),
+          ),
           slivers: [
             SliverToBoxAdapter(
               child: Padding(
@@ -704,7 +986,7 @@ class _Header extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '$bookCount ފޮތް • އޮފްލައިން',
+                  '$bookCount ފޮތް',
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
@@ -1245,6 +1527,7 @@ class _BookTile extends StatelessWidget {
                       maxLines: 1,
                     ),
                   ),
+                  _BookDownloadButton(book: book),
                 ],
               ),
             ],
@@ -1253,6 +1536,147 @@ class _BookTile extends StatelessWidget {
       ),
     );
   }
+}
+
+class _BookDownloadButton extends StatefulWidget {
+  const _BookDownloadButton({required this.book});
+
+  final Book book;
+
+  @override
+  State<_BookDownloadButton> createState() => _BookDownloadButtonState();
+}
+
+class _BookDownloadButtonState extends State<_BookDownloadButton> {
+  DownloadService get _downloads => DownloadService.instance;
+
+  @override
+  void initState() {
+    super.initState();
+    _downloads.ensureState(widget.book);
+  }
+
+  @override
+  void didUpdateWidget(covariant _BookDownloadButton oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.book.id != widget.book.id) {
+      _downloads.ensureState(widget.book);
+    }
+  }
+
+  Future<void> _remove() async {
+    final remove = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('ޑައުންލޯޑު ފުހެލަން؟'),
+        content: const Text(
+          'ފޮތާއި އޯޑިއޯތައް މި ފޯނުން ފުހެލެވޭނެ. އެކަމަކު ފޮތް ލައިބްރަރީގައި ހުންނާނެ.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('ނޫން'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('ފުހެލާ'),
+          ),
+        ],
+      ),
+    );
+    if (remove == true) await _downloads.remove(widget.book);
+  }
+
+  Future<void> _startOrRetry() async {
+    await _downloads.download(widget.book);
+    if (!mounted) return;
+    if (_downloads.stateFor(widget.book.id).status ==
+        BookDownloadStatus.failed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('ޑައުންލޯޑު ނުކުރެވުނު. އަލުން ޖައްސަވާ.')),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _downloads,
+      builder: (context, _) {
+        final state = _downloads.stateFor(widget.book.id);
+        final (icon, tooltip, action) = switch (state.status) {
+          BookDownloadStatus.notDownloaded => (
+              Icons.download_rounded,
+              'ޑައުންލޯޑު',
+              _startOrRetry,
+            ),
+          BookDownloadStatus.downloading => (
+              Icons.close_rounded,
+              'ހުއްޓުވާ',
+              () => _downloads.cancel(widget.book.id),
+            ),
+          BookDownloadStatus.downloaded => (
+              Icons.download_done_rounded,
+              'ޑައުންލޯޑު ފުހެލާ',
+              _remove,
+            ),
+          BookDownloadStatus.failed => (
+              Icons.refresh_rounded,
+              'އަލުން ޖައްސަވާ',
+              _startOrRetry,
+            ),
+        };
+        return Tooltip(
+          message: tooltip,
+          child: InkResponse(
+            onTap: action,
+            radius: 22,
+            child: SizedBox.square(
+              dimension: 34,
+              child: state.status == BookDownloadStatus.downloading
+                  ? Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        CircularProgressIndicator(
+                          value: state.progress,
+                          strokeWidth: 2.5,
+                        ),
+                        if (state.progress case final double progress)
+                          Text(
+                            '${(progress * 100).round()}%',
+                            textDirection: TextDirection.ltr,
+                            style: const TextStyle(
+                              fontFamily: 'sans-serif',
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          )
+                        else
+                          Icon(icon, size: 17),
+                      ],
+                    )
+                  : Icon(
+                      icon,
+                      size: 20,
+                      color: state.status == BookDownloadStatus.downloaded
+                          ? Theme.of(context).colorScheme.primary
+                          : null,
+                    ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+String _formatBytes(int bytes) {
+  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  if (bytes < 1024 * 1024 * 1024) {
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+  }
+  return '${(bytes / (1024 * 1024 * 1024)).toStringAsFixed(1)} GB';
 }
 
 class _EmptyState extends StatelessWidget {

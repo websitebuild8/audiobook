@@ -48,10 +48,14 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
     if (!mounted) return;
     setState(() => _loading = true);
     try {
-      await _player.setAsset(
-        widget.book.audio[index].assetPath,
-        initialPosition: position,
-      );
+      final source = widget.book.audio[index].assetPath;
+      if (_isNetworkSource(source)) {
+        await _player.setUrl(source, initialPosition: position);
+      } else if (source.startsWith('/')) {
+        await _player.setFilePath(source, initialPosition: position);
+      } else {
+        await _player.setAsset(source, initialPosition: position);
+      }
       await _player.setSpeed(_speed);
       if (!mounted) return;
       setState(() {
@@ -305,4 +309,9 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
   String _formatSpeed(double value) => value == value.roundToDouble()
       ? value.toInt().toString()
       : value.toStringAsFixed(2).replaceFirst(RegExp(r'0$'), '');
+
+  bool _isNetworkSource(String source) {
+    final uri = Uri.tryParse(source);
+    return uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
+  }
 }

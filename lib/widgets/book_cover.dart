@@ -13,15 +13,27 @@ class BookCover extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cover = book.coverAsset == null
+    final source = book.coverAsset;
+    final cover = source == null
         ? _GeneratedFace(book: book, compact: compact)
-        : Image.asset(
-            book.coverAsset!,
-            fit: BoxFit.cover,
-            filterQuality: FilterQuality.medium,
-            errorBuilder: (_, __, ___) =>
-                _GeneratedFace(book: book, compact: compact),
-          );
+        : _isNetworkSource(source)
+            ? Image.network(
+                source,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+                gaplessPlayback: true,
+                loadingBuilder: (context, child, progress) =>
+                    progress == null ? child : _CoverLoading(book: book),
+                errorBuilder: (_, __, ___) =>
+                    _GeneratedFace(book: book, compact: compact),
+              )
+            : Image.asset(
+                source,
+                fit: BoxFit.cover,
+                filterQuality: FilterQuality.medium,
+                errorBuilder: (_, __, ___) =>
+                    _GeneratedFace(book: book, compact: compact),
+              );
 
     return Padding(
       padding: EdgeInsets.fromLTRB(compact ? 7 : 10, 3, compact ? 9 : 14, 12),
@@ -109,6 +121,35 @@ class BookCover extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+bool _isNetworkSource(String source) {
+  final uri = Uri.tryParse(source);
+  return uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
+}
+
+class _CoverLoading extends StatelessWidget {
+  const _CoverLoading({required this.book});
+
+  final Book book;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      ),
+      child: Center(
+        child: SizedBox.square(
+          dimension: 22,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: Theme.of(context).colorScheme.primary,
           ),
         ),
       ),

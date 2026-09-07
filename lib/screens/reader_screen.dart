@@ -34,6 +34,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     final page =
         widget.initialPage ?? await ProgressService.pageFor(widget.book.id);
     final bookmarked = await ProgressService.isBookmarked(widget.book.id, page);
+    await ProgressService.recordBookOpened(widget.book.id, page);
     if (!mounted) return;
     setState(() {
       _page = page;
@@ -76,6 +77,55 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final viewerParams = PdfViewerParams(
+      margin: 10,
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF121715)
+          : const Color(0xFFE9EBE7),
+      pageDropShadow: BoxShadow(
+        color: Colors.black.withValues(alpha: .12),
+        blurRadius: 12,
+        offset: const Offset(0, 5),
+      ),
+      onPageChanged: _onPageChanged,
+      onViewerReady: (document, controller) {
+        if (mounted) setState(() => _pageCount = controller.pageCount);
+      },
+      onGeneralTap: (context, controller, details) {
+        setState(() => _controlsVisible = !_controlsVisible);
+        return false;
+      },
+    );
+    final source = widget.book.pdfAsset;
+    final sourceUri = Uri.tryParse(source);
+    final isNetworkPdf = sourceUri != null &&
+        (sourceUri.scheme == 'https' || sourceUri.scheme == 'http');
+    final PdfViewer pdfViewer;
+    if (isNetworkPdf) {
+      pdfViewer = PdfViewer.uri(
+        sourceUri,
+        controller: _pdfController,
+        initialPageNumber: _page,
+        params: viewerParams,
+        preferRangeAccess: true,
+        timeout: const Duration(seconds: 30),
+      );
+    } else if (source.startsWith('/')) {
+      pdfViewer = PdfViewer.file(
+        source,
+        controller: _pdfController,
+        initialPageNumber: _page,
+        params: viewerParams,
+      );
+    } else {
+      pdfViewer = PdfViewer.asset(
+        source,
+        controller: _pdfController,
+        initialPageNumber: _page,
+        params: viewerParams,
+      );
+    }
+
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: !_ready
@@ -83,33 +133,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           : Stack(
               children: [
                 Positioned.fill(
-                  child: PdfViewer.asset(
-                    widget.book.pdfAsset,
-                    controller: _pdfController,
-                    initialPageNumber: _page,
-                    params: PdfViewerParams(
-                      margin: 10,
-                      backgroundColor:
-                          Theme.of(context).brightness == Brightness.dark
-                              ? const Color(0xFF121715)
-                              : const Color(0xFFE9EBE7),
-                      pageDropShadow: BoxShadow(
-                        color: Colors.black.withValues(alpha: .12),
-                        blurRadius: 12,
-                        offset: const Offset(0, 5),
-                      ),
-                      onPageChanged: _onPageChanged,
-                      onViewerReady: (document, controller) {
-                        if (mounted) {
-                          setState(() => _pageCount = controller.pageCount);
-                        }
-                      },
-                      onGeneralTap: (context, controller, details) {
-                        setState(() => _controlsVisible = !_controlsVisible);
-                        return false;
-                      },
-                    ),
-                  ),
+                  child: pdfViewer,
                 ),
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 250),
