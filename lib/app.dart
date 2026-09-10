@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/library_screen.dart';
@@ -39,6 +40,16 @@ class _MaktabaAppState extends State<MaktabaApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Maktaba Athariyya',
+      // Flutter does not currently provide a Dhivehi Material localization.
+      // Arabic supplies an RTL localization for framework-owned controls such
+      // as the PDF text-selection toolbar, while app content remains Dhivehi.
+      locale: const Locale('ar'),
+      supportedLocales: const [Locale('ar'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: _darkMode ? ThemeMode.dark : ThemeMode.light,

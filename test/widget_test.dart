@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maktaba_athariyya/app.dart';
 import 'package:maktaba_athariyya/models/book.dart';
@@ -20,6 +21,11 @@ void main() {
     await tester.pumpWidget(const MaktabaApp());
     await tester.pumpAndSettle();
 
-    expect(find.text('މަކްތަބާ އަޘަރިއްޔާ'), findsOneWidget);
+    final heading = find.text('މަކްތަބާ އަޘަރިއްޔާ');
+    expect(heading, findsOneWidget);
+    expect(
+      () => MaterialLocalizations.of(tester.element(heading)),
+      returnsNormally,
+    );
   });
 }
