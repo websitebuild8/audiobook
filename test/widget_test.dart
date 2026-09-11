@@ -17,15 +17,17 @@ void main() {
   );
   tearDown(() => CatalogService.testBooks = null);
 
-  testWidgets('shows the Maktaba library heading', (tester) async {
+  testWidgets('shows the localized startup splash', (tester) async {
     await tester.pumpWidget(const MaktabaApp());
-    await tester.pumpAndSettle();
+    await tester.pump();
 
-    final heading = find.text('މަކްތަބާ އަޘަރިއްޔާ');
-    expect(heading, findsOneWidget);
+    final spinner = find.byType(CircularProgressIndicator);
+    expect(find.byType(Image), findsNWidgets(2));
+    expect(spinner, findsOneWidget);
     expect(
-      () => MaterialLocalizations.of(tester.element(heading)),
+      () => MaterialLocalizations.of(tester.element(spinner)),
       returnsNormally,
     );
+    await tester.pump(const Duration(milliseconds: 1500));
   });
 }

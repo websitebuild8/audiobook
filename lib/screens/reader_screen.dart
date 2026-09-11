@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 
@@ -17,17 +19,33 @@ class ReaderScreen extends StatefulWidget {
 }
 
 class _ReaderScreenState extends State<ReaderScreen> {
+  static const _noticeText =
+      '★ ތަންބީހު: ބައެއް ޝަޔްޚުންގެ ފޮތްތަކާއި ޢިލްމީ މަސައްކަތްތައް މި ދާރުން ނެރުމަކީ، އެޝަޔްޚުންގެ ގޯސް ރައުޔުތަކާއި ފުރެދުންތަކަށް އެއްބަސްވުން ލާޒިމު ކަމެއް ނޫންކަމަށް އަންގާލަމެވެ. އެގޮތުން މިއިން ބައެއް ޝަޔްޚުންގެ ކިބައިން ޙާކިމިއްޔަތާއި، ޙަރަކިއްޔަތާއި، އެނޫންވެސް ފިކްރުތަކާއި ރައުޔުތަކާ މި ދާރު އެއްބަސްނުވާ ކަމަށް ފާހަގަކުރަމެވެ.';
+
   final _pdfController = PdfViewerController();
   int _page = 1;
   int _pageCount = 0;
   bool _bookmarked = false;
   bool _controlsVisible = true;
   bool _ready = false;
+  bool _noticeVisible = true;
+  Timer? _noticeTimer;
 
   @override
   void initState() {
     super.initState();
+    _noticeTimer = Timer(
+      const Duration(seconds: 30),
+      () {
+        if (mounted) setState(() => _noticeVisible = false);
+      },
+    );
     _restore();
+  }
+
+  void _closeNotice() {
+    _noticeTimer?.cancel();
+    setState(() => _noticeVisible = false);
   }
 
   Future<void> _restore() async {
@@ -71,6 +89,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 
   @override
   void dispose() {
+    _noticeTimer?.cancel();
     ProgressService.savePage(widget.book.id, _page);
     super.dispose();
   }
@@ -169,8 +188,78 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       child: _PagePill(page: _page, count: _pageCount),
                     ),
                   ),
+                Positioned(
+                  top: MediaQuery.paddingOf(context).top + 76,
+                  left: 12,
+                  right: 12,
+                  child: IgnorePointer(
+                    ignoring: !_noticeVisible,
+                    child: AnimatedSlide(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeOutCubic,
+                      offset:
+                          _noticeVisible ? Offset.zero : const Offset(0, -1),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 220),
+                        opacity: _noticeVisible ? 1 : 0,
+                        child: _ReaderNotice(
+                          text: _noticeText,
+                          onClose: _closeNotice,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
+    );
+  }
+}
+
+class _ReaderNotice extends StatelessWidget {
+  const _ReaderNotice({required this.text, required this.onClose});
+
+  final String text;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    return Material(
+      color: colors.surfaceContainerHigh.withValues(alpha: .98),
+      elevation: 8,
+      shadowColor: Colors.black.withValues(alpha: .24),
+      borderRadius: BorderRadius.circular(20),
+      clipBehavior: Clip.antiAlias,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * .46,
+        ),
+        child: Stack(
+          children: [
+            SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
+              child: Text(
+                text,
+                textAlign: TextAlign.right,
+                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      height: 1.75,
+                      color: colors.onSurface,
+                    ),
+              ),
+            ),
+            Positioned(
+              top: 7,
+              left: 7,
+              child: IconButton(
+                tooltip: 'ބަންދުކުރައްވާ',
+                onPressed: onClose,
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

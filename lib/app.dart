@@ -15,17 +15,25 @@ class MaktabaApp extends StatefulWidget {
 class _MaktabaAppState extends State<MaktabaApp> {
   static const _themeKey = 'dark_mode';
   bool _darkMode = false;
+  bool _ready = false;
 
   @override
   void initState() {
     super.initState();
-    _restoreTheme();
+    _initialize();
   }
 
-  Future<void> _restoreTheme() async {
+  Future<void> _initialize() async {
+    final minimumSplashTime = Future<void>.delayed(
+      const Duration(milliseconds: 1400),
+    );
     final prefs = await SharedPreferences.getInstance();
+    await minimumSplashTime;
     if (!mounted) return;
-    setState(() => _darkMode = prefs.getBool(_themeKey) ?? false);
+    setState(() {
+      _darkMode = prefs.getBool(_themeKey) ?? false;
+      _ready = true;
+    });
   }
 
   Future<void> _toggleTheme() async {
@@ -53,12 +61,57 @@ class _MaktabaAppState extends State<MaktabaApp> {
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
       themeMode: _darkMode ? ThemeMode.dark : ThemeMode.light,
-      home: LibraryScreen(
-        darkMode: _darkMode,
-        onToggleTheme: _toggleTheme,
-      ),
+      home: _ready
+          ? LibraryScreen(
+              darkMode: _darkMode,
+              onToggleTheme: _toggleTheme,
+            )
+          : const _StartupSplash(),
       builder: (context, child) =>
           Directionality(textDirection: TextDirection.rtl, child: child!),
+    );
+  }
+}
+
+class _StartupSplash extends StatelessWidget {
+  const _StartupSplash();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF02271B),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset(
+            'assets/branding/splash_background.png',
+            fit: BoxFit.cover,
+          ),
+          SafeArea(
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Image.asset(
+                    'assets/branding/splash_mark.png',
+                    width: 230,
+                    height: 230,
+                    filterQuality: FilterQuality.high,
+                  ),
+                  const SizedBox(height: 44),
+                  const SizedBox.square(
+                    dimension: 34,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2.7,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
