@@ -37,6 +37,13 @@ export const Books: CollectionConfig = {
               admin: { description: 'ކަވަރެއް ނެތްނަމަ އެޕްގައި އޮޓޯ ކަވަރެއް ދައްކާނެ.' },
             },
             { name: 'pdf', type: 'upload', relationTo: 'media', label: 'PDF ފައިލު', required: true },
+            {
+              name: 'showReaderNotice',
+              type: 'checkbox',
+              label: 'Show reader notice · ތަންބީހު ދައްކާ',
+              defaultValue: false,
+              admin: { description: 'Show the notice when this book is opened in the reader. Off by default. Publish changes to update the app.' },
+            },
             { name: 'featured', type: 'checkbox', label: 'ޚާއްޞަ ފޮތަކަށް ހޮވާ', defaultValue: false },
             { name: 'order', type: 'number', label: 'ތަރުތީބު', defaultValue: 0, min: 0 },
           ],

@@ -7,6 +7,7 @@ import '../models/book.dart';
 import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/audio_player_panel.dart';
+import '../widgets/reader_notice.dart';
 
 class ReaderScreen extends StatefulWidget {
   const ReaderScreen({super.key, required this.book, this.initialPage});
@@ -20,7 +21,7 @@ class ReaderScreen extends StatefulWidget {
 
 class _ReaderScreenState extends State<ReaderScreen> {
   static const _noticeText =
-      '★ ތަންބީހު: ބައެއް ޝަޔްޚުންގެ ފޮތްތަކާއި ޢިލްމީ މަސައްކަތްތައް މި ދާރުން ނެރުމަކީ، އެޝަޔްޚުންގެ ގޯސް ރައުޔުތަކާއި ފުރެދުންތަކަށް އެއްބަސްވުން ލާޒިމު ކަމެއް ނޫންކަމަށް އަންގާލަމެވެ. އެގޮތުން މިއިން ބައެއް ޝަޔްޚުންގެ ކިބައިން ޙާކިމިއްޔަތާއި، ޙަރަކިއްޔަތާއި، އެނޫންވެސް ފިކްރުތަކާއި ރައުޔުތަކާ މި ދާރު އެއްބަސްނުވާ ކަމަށް ފާހަގަކުރަމެވެ.';
+      'ތަންބީހު: ބައެއް ޝަޔްޚުންގެ ފޮތްތަކާއި ޢިލްމީ މަސައްކަތްތައް މި ދާރުން ނެރުމަކީ، އެޝަޔްޚުންގެ ގޯސް ރައުޔުތަކާއި ފުރެދުންތަކަށް އެއްބަސްވުން ލާޒިމު ކަމެއް ނޫންކަމަށް އަންގާލަމެވެ. އެގޮތުން މިއިން ބައެއް ޝަޔްޚުންގެ ކިބައިން ޙާކިމިއްޔަތާއި، ޙަރަކިއްޔަތާއި، އެނޫންވެސް ފިކްރުތަކާއި ރައުޔުތަކާ މި ދާރު އެއްބަސްނުވާ ކަމަށް ފާހަގަކުރަމެވެ.';
 
   final _pdfController = PdfViewerController();
   int _page = 1;
@@ -28,18 +29,18 @@ class _ReaderScreenState extends State<ReaderScreen> {
   bool _bookmarked = false;
   bool _controlsVisible = true;
   bool _ready = false;
-  bool _noticeVisible = true;
+  bool _noticeVisible = false;
   Timer? _noticeTimer;
 
   @override
   void initState() {
     super.initState();
-    _noticeTimer = Timer(
-      const Duration(seconds: 30),
-      () {
+    _noticeVisible = widget.book.showReaderNotice;
+    if (_noticeVisible) {
+      _noticeTimer = Timer(const Duration(seconds: 30), () {
         if (mounted) setState(() => _noticeVisible = false);
-      },
-    );
+      });
+    }
     _restore();
   }
 
@@ -79,9 +80,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         behavior: SnackBarBehavior.floating,
-        content: Text(
-          value ? 'ބުކްމާކް ކުރެވިއްޖެ' : 'ބުކްމާކް ފުހެވިއްޖެ',
-        ),
+        content: Text(value ? 'ބުކްމާކް ކުރެވިއްޖެ' : 'ބުކްމާކް ފުހެވިއްޖެ'),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -156,9 +155,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                Positioned.fill(
-                  child: pdfViewer,
-                ),
+                Positioned.fill(child: pdfViewer),
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 250),
                   curve: Curves.easeOutCubic,
@@ -193,78 +190,31 @@ class _ReaderScreenState extends State<ReaderScreen> {
                       child: _PagePill(page: _page, count: _pageCount),
                     ),
                   ),
-                Positioned(
-                  top: MediaQuery.paddingOf(context).top + 76,
-                  left: 12,
-                  right: 12,
-                  child: IgnorePointer(
-                    ignoring: !_noticeVisible,
-                    child: AnimatedSlide(
-                      duration: const Duration(milliseconds: 280),
-                      curve: Curves.easeOutCubic,
-                      offset:
-                          _noticeVisible ? Offset.zero : const Offset(0, -1),
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 220),
-                        opacity: _noticeVisible ? 1 : 0,
-                        child: _ReaderNotice(
-                          text: _noticeText,
-                          onClose: _closeNotice,
+                if (widget.book.showReaderNotice)
+                  Positioned(
+                    top: MediaQuery.paddingOf(context).top + 76,
+                    left: 12,
+                    right: 12,
+                    child: IgnorePointer(
+                      ignoring: !_noticeVisible,
+                      child: AnimatedSlide(
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeOutCubic,
+                        offset:
+                            _noticeVisible ? Offset.zero : const Offset(0, -1),
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 220),
+                          opacity: _noticeVisible ? 1 : 0,
+                          child: ReaderNotice(
+                            text: _noticeText,
+                            onClose: _closeNotice,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
-    );
-  }
-}
-
-class _ReaderNotice extends StatelessWidget {
-  const _ReaderNotice({required this.text, required this.onClose});
-
-  final String text;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
-    return Material(
-      color: colors.surfaceContainerHigh.withValues(alpha: .98),
-      elevation: 8,
-      shadowColor: Colors.black.withValues(alpha: .24),
-      borderRadius: BorderRadius.circular(20),
-      clipBehavior: Clip.antiAlias,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * .46,
-        ),
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 52, 20, 20),
-              child: Text(
-                text,
-                textAlign: TextAlign.right,
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      height: 1.75,
-                      color: colors.onSurface,
-                    ),
-              ),
-            ),
-            Positioned(
-              top: 7,
-              left: 7,
-              child: IconButton(
-                tooltip: 'ބަންދުކުރައްވާ',
-                onPressed: onClose,
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

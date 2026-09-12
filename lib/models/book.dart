@@ -9,11 +9,8 @@ class AudioChapter {
   final String assetPath;
   final int fileSize;
 
-  AudioChapter copyWithSource(String source) => AudioChapter(
-        title: title,
-        assetPath: source,
-        fileSize: fileSize,
-      );
+  AudioChapter copyWithSource(String source) =>
+      AudioChapter(title: title, assetPath: source, fileSize: fileSize);
 }
 
 class Book {
@@ -23,6 +20,7 @@ class Book {
     required this.category,
     required this.pdfAsset,
     this.pdfFileSize = 0,
+    this.showReaderNotice = false,
     this.coverAsset,
     this.audio = const [],
   });
@@ -32,6 +30,7 @@ class Book {
   final String category;
   final String pdfAsset;
   final int pdfFileSize;
+  final bool showReaderNotice;
   final String? coverAsset;
   final List<AudioChapter> audio;
 
@@ -49,6 +48,7 @@ class Book {
       category: category,
       pdfAsset: pdfPath,
       pdfFileSize: pdfFileSize,
+      showReaderNotice: showReaderNotice,
       coverAsset: coverAsset,
       audio: [
         for (var index = 0; index < audio.length; index++)

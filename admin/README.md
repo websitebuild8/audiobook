@@ -101,3 +101,20 @@ Final verification: TypeScript passed; all four analytics tests passed; producti
 build completed successfully; browser checks passed without page errors or horizontal
 overflow at the tested viewport sizes. Live authenticated CRUD and R2 uploads remain
 to be checked with configured services. The frontend changes require no migrations.
+
+## Per-book reader notice
+
+In **Books → Book information**, enable **Show reader notice · ތަންބީހު ދައްކާ**
+for each book that should show the existing Dhivehi notice, then publish the change.
+The option defaults to off, including for older API responses without the field.
+The Flutter reader uses this flag for both streamed and downloaded books. The panel
+uses centered RTL text, a blurred glass background, and a close button; it still
+auto-dismisses after 30 seconds.
+
+For an existing production database, run `npx payload migrate` from `admin/` with the
+production database environment configured before releasing the updated backend.
+The included `20260912_120000_reader_notice` migration adds the boolean to `books`
+and its draft/version table. It has not been run against the live database here.
+Development normally applies this field through Payload's existing schema push.
+Ship the updated Flutter app as well: older app builds still show the notice for
+all books. Catalogue changes are cached for five minutes and remain cached offline.

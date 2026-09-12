@@ -27,10 +27,7 @@ abstract final class CatalogService {
     try {
       final documents = await _fetchAllBooks();
       await prefs.setString(_cacheKey, jsonEncode(documents));
-      await prefs.setInt(
-        _cacheTimeKey,
-        DateTime.now().millisecondsSinceEpoch,
-      );
+      await prefs.setInt(_cacheTimeKey, DateTime.now().millisecondsSinceEpoch);
       return _booksFromRemoteDocuments(documents);
     } catch (_) {
       final cached = _cachedCatalog(prefs);
@@ -128,6 +125,7 @@ abstract final class CatalogService {
             category: categoryName,
             pdfAsset: _mediaUrl(entry['pdf']) ?? '',
             pdfFileSize: _mediaSize(entry['pdf']),
+            showReaderNotice: entry['showReaderNotice'] == true,
             coverAsset: _mediaUrl(entry['cover'], cacheBust: true),
             audio: [
               for (final chapter in chapters)
