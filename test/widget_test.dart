@@ -22,7 +22,8 @@ void main() {
     await tester.pump();
 
     final spinner = find.byType(CircularProgressIndicator);
-    expect(find.byType(Image), findsNWidgets(2));
+    expect(find.byType(Image), findsOneWidget);
+    expect(find.text('މަރުޙަބާ'), findsOneWidget);
     expect(spinner, findsOneWidget);
     expect(
       () => MaterialLocalizations.of(tester.element(spinner)),

@@ -98,6 +98,11 @@ class _ReaderScreenState extends State<ReaderScreen> {
   Widget build(BuildContext context) {
     final viewerParams = PdfViewerParams(
       margin: 10,
+      // pdfrx creates its text-selection toolbar in a separate overlay. On
+      // unsupported device locales that toolbar can lack MaterialLocalizations.
+      // This reader does not expose copy/select actions, so disable the gesture
+      // at its source and keep long-press harmless.
+      textSelectionParams: const PdfTextSelectionParams(enabled: false),
       backgroundColor: Theme.of(context).brightness == Brightness.dark
           ? const Color(0xFF121715)
           : const Color(0xFFE9EBE7),

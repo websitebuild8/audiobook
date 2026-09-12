@@ -24,11 +24,7 @@ class _MaktabaAppState extends State<MaktabaApp> {
   }
 
   Future<void> _initialize() async {
-    final minimumSplashTime = Future<void>.delayed(
-      const Duration(milliseconds: 1400),
-    );
     final prefs = await SharedPreferences.getInstance();
-    await minimumSplashTime;
     if (!mounted) return;
     setState(() {
       _darkMode = prefs.getBool(_themeKey) ?? false;
@@ -73,8 +69,36 @@ class _MaktabaAppState extends State<MaktabaApp> {
   }
 }
 
-class _StartupSplash extends StatelessWidget {
+class _StartupSplash extends StatefulWidget {
   const _StartupSplash();
+
+  @override
+  State<_StartupSplash> createState() => _StartupSplashState();
+}
+
+class _StartupSplashState extends State<_StartupSplash>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _pulseController;
+  late final Animation<double> _pulse;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 850),
+    )..repeat(reverse: true);
+    _pulse = CurvedAnimation(
+      parent: _pulseController,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -92,13 +116,24 @@ class _StartupSplash extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Image.asset(
-                    'assets/branding/splash_mark.png',
-                    width: 230,
-                    height: 230,
-                    filterQuality: FilterQuality.high,
+                  FadeTransition(
+                    opacity: Tween<double>(begin: .58, end: 1).animate(_pulse),
+                    child: ScaleTransition(
+                      scale:
+                          Tween<double>(begin: .96, end: 1.04).animate(_pulse),
+                      child: const Text(
+                        'މަރުޙަބާ',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Maumoon',
+                          fontSize: 58,
+                          height: 1.2,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 44),
+                  const SizedBox(height: 48),
                   const SizedBox.square(
                     dimension: 34,
                     child: CircularProgressIndicator(

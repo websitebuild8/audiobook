@@ -1,7 +1,7 @@
 name: maktaba_athariyya
 description: A fast, fully offline Dhivehi and Arabic book and audiobook reader.
 publish_to: none
-version: 1.0.0+1
+version: 1.0.0+2
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
@@ -30,3 +30,6 @@ flutter:
     - family: Faseyha
       fonts:
         - asset: fonts/Faseyha_reg_hinted_v2.ttf
+    - family: Maumoon
+      fonts:
+        - asset: fonts/Maumoon.otf
