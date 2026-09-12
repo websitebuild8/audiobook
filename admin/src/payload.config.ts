@@ -28,6 +28,7 @@ export default buildConfig({
     components: {
       graphics: { Logo: './src/components/Logo#Logo', Icon: './src/components/Logo#Icon' },
       beforeDashboard: ['./src/components/Welcome#Welcome'],
+      afterNavLinks: ['./src/components/AdminNavLinks#AdminNavLinks'],
     },
   },
   i18n: {

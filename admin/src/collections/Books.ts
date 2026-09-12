@@ -7,7 +7,7 @@ export const Books: CollectionConfig = {
   admin: {
     group: 'ފޮތްތައް',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'category', 'hasAudio', 'status', 'updatedAt'],
+    defaultColumns: ['title', 'category', '_status', 'updatedAt'],
     description: 'އެޕްގައި ދައްކާ ފޮތްތަކާއި އޯޑިއޯތައް މެނޭޖްކުރައްވާ',
   },
   access: {

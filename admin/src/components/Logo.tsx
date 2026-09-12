@@ -3,7 +3,7 @@ import React from 'react'
 export function Logo() {
   return (
     <div className="athariyya-logo" aria-label="Makthaba Athariyya Idhaaraa">
-      <span className="athariyya-logo__mark">أ</span>
+      <img className="athariyya-logo__mark" src="/makthaba-logo.png" alt="" />
       <span>
         <strong>މަކްތަބާ އަލްއަޘަރިއްޔާ</strong>
         <small>އިދާރާ</small>
@@ -13,5 +13,5 @@ export function Logo() {
 }
 
 export function Icon() {
-  return <span className="athariyya-icon">أ</span>
+  return <img className="athariyya-icon" src="/makthaba-logo.png" alt="Makthaba" />
 }
