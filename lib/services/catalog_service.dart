@@ -8,7 +8,7 @@ import '../models/book.dart';
 
 abstract final class CatalogService {
   static const apiBaseUrl =
-      'https://makthaba-athariyya-idhaaraa.vercel.app/api';
+      'https://www.athariyya.online/api';
   static const _cacheKey = 'remote_catalog_v1';
   static const _cacheTimeKey = 'remote_catalog_updated_at_v1';
   static const _cacheLifetime = Duration(minutes: 5);

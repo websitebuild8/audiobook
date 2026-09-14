@@ -10,7 +10,9 @@
     "generate:importmap": "cross-env NODE_OPTIONS=--no-deprecation payload generate:importmap",
     "generate:types": "cross-env NODE_OPTIONS=--no-deprecation payload generate:types",
     "seed:categories": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/seed-categories.ts",
-    "import:catalog": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/import-catalog.ts"
+    "import:catalog": "cross-env NODE_OPTIONS=--no-deprecation tsx src/scripts/import-catalog.ts",
+    "prebuild": "node scripts/copy-pdf-assets.mjs",
+    "predev": "node scripts/copy-pdf-assets.mjs"
   },
   "dependencies": {
     "@payloadcms/db-postgres": "latest",
@@ -29,6 +31,7 @@
     "payload": "latest",
     "react": "latest",
     "react-dom": "latest",
+    "react-pdf": "^11.0.0",
     "sharp": "latest",
     "tailwind-merge": "^3.6.0"
   },
@@ -43,6 +46,6 @@
     "typescript": "^5.7.3"
   },
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=22.13.0"
   }
 }

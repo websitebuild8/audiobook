@@ -19,6 +19,7 @@ import {
   X,
 } from 'lucide-react'
 import Image from 'next/image'
+import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -313,6 +314,8 @@ function EmptyState({ icon: Icon, title, action }: { icon: typeof Search; title:
   return <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-stone-300 bg-white/40 text-center dark:border-white/15 dark:bg-white/[.02]"><div><Icon className="mx-auto mb-4 size-10 text-emerald-700 dark:text-emerald-400" /><p className="mb-5 text-lg font-semibold">{title}</p>{action}</div></div>
 }
 
+const PdfReader = dynamic(() => import('./pdf-reader'), { ssr: false, loading: () => <p className="p-8 text-center">Loading PDF viewer…</p> })
+
 function Reader({ book, bookmarked, onBookmark, onClose }: { book: Book; bookmarked: boolean; onBookmark: () => void; onClose: () => void }) {
   const pdf = mediaURL(book.pdf)
   const chapters = [...(book.audioChapters || [])].sort((a, b) => a.order - b.order)
@@ -334,7 +337,7 @@ function Reader({ book, bookmarked, onBookmark, onClose }: { book: Book; bookmar
         </div>
       )}
       <div className="relative flex-1 bg-stone-200 dark:bg-black/30">
-        {pdf ? <iframe src={`${pdf}#view=FitH`} title={book.title} className="absolute inset-0 size-full border-0" /> : <div className="grid h-full place-items-center">PDF ފައިލެއް ނެތް</div>}
+        {pdf ? <PdfReader url={pdf} title={book.title} /> : <div className="grid h-full place-items-center">PDF ފައިލެއް ނެތް</div>}
       </div>
     </div>
   )

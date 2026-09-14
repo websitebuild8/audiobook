@@ -8,6 +8,7 @@ import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/audio_player_panel.dart';
 import '../widgets/reader_notice.dart';
+import '../widgets/glass_page_scrollbar.dart';
 
 class ReaderScreen extends StatefulWidget {
   const ReaderScreen({super.key, required this.book, this.initialPage});
@@ -188,6 +189,27 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     right: 0,
                     child: Center(
                       child: _PagePill(page: _page, count: _pageCount),
+                    ),
+                  ),
+                if (_pageCount > 1)
+                  Positioned(
+                    top: MediaQuery.paddingOf(context).top + 86,
+                    bottom: MediaQuery.paddingOf(context).bottom +
+                        (widget.book.hasAudio ? 180 : 64),
+                    right: 4,
+                    width: 120,
+                    child: ValueListenableBuilder(
+                      valueListenable: _pdfController,
+                      builder: (context, value, child) => GlassPageScrollbar(
+                        page: _pdfController.pageNumber ?? _page,
+                        pageCount: _pageCount,
+                        onChanged: (page) {
+                          if (_pdfController.isReady) {
+                            _pdfController.goToPage(
+                                pageNumber: page, duration: Duration.zero);
+                          }
+                        },
+                      ),
                     ),
                   ),
                 if (widget.book.showReaderNotice)

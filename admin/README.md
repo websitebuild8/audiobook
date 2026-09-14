@@ -14,7 +14,7 @@ Dhivehi-first RTL administration dashboard and API for the Flutter reader.
 
 ## Start locally
 
-1. Use Node.js 20.9 or newer and PostgreSQL, or create a free Neon database.
+1. Use Node.js 22.13 or newer and PostgreSQL, or create a free Neon database.
 2. Copy `.env.example` to `.env` and fill in `DATABASE_URI` and `PAYLOAD_SECRET`.
 3. Copy `../fonts/Faseyha_reg_hinted_v2.ttf` to `public/fonts/Faseyha.ttf`.
 4. Run `npm install`, followed by `npm run dev`.
@@ -69,7 +69,7 @@ Dashboard analytics labels are in English alongside Dhivehi navigation. Styles s
 inside the existing Payload stylesheet rather than loading Tailwind's global reset
 into Payload's forms. No database schema or storage configuration changes are needed.
 
-Validation commands (Node 20.9+):
+Validation commands (Node 22.13+):
 
 ```sh
 npm run generate:importmap
@@ -118,3 +118,21 @@ and its draft/version table. It has not been run against the live database here.
 Development normally applies this field through Payload's existing schema push.
 Ship the updated Flutter app as well: older app builds still show the notice for
 all books. Catalogue changes are cached for five minutes and remain cached offline.
+
+## PDF scroll controls
+
+The mobile reader and public web reader now have a translucent rounded page handle.
+Drag it vertically to navigate; its page label appears while pressed. The mobile
+control also exposes page increment/decrement actions to screen readers. The web
+control supports arrow keys, Page Up/Down, Home/End, and a page label on keyboard focus.
+
+The web reader uses React-PDF/PDF.js instead of a browser iframe, with selectable text,
+annotations, zoom, and nearby-page canvas rendering. “Open original” retains access
+to the browser's own viewer for printing, search, and unsupported documents/browsers.
+Node.js 22.13+ is required. The prebuild/predev scripts copy PDF.js fonts, CMaps, and
+WASM resources into the generated `public/pdf-assets` folder; the worker is bundled
+by Next.js. Run `npm install` in the original checkout before building.
+
+R2 must allow browser GET requests from the website origin through its CORS policy.
+If a custom domain is added, add that origin too. No database migration is needed
+for these scrollbar changes. Release the web build and Flutter app separately.

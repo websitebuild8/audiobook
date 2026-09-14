@@ -1,0 +1,11 @@
+.glass-pdf{position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;color:#173b36;font-family:system-ui,sans-serif;background:#e5e8e5}
+.pdf-tools{display:flex;align-items:center;gap:16px;padding:8px 16px;font-size:12px;background:#f8faf8;border-bottom:1px solid #d8e0d9;min-height:44px;flex-wrap:wrap;z-index:1}
+.pdf-tools label{margin-left:auto}.pdf-tools select{margin-left:8px;background:transparent;padding:4px}.pdf-tools a{text-decoration:underline}
+.pdf-viewport{flex:1;min-height:0;overflow:auto;padding:16px 30px;scrollbar-width:none;overflow-anchor:none;touch-action:pan-x pan-y pinch-zoom}
+.pdf-viewport::-webkit-scrollbar{display:none}.pdf-sheet{background:white;box-shadow:0 3px 12px #10291a20}.pdf-page-loading{display:block;padding:20px;color:#64756b;font-size:12px}
+.pdf-scroll-rail{position:absolute;right:4px;top:60px;bottom:16px;width:44px;pointer-events:none;z-index:5}
+.pdf-scroll-thumb{position:absolute;right:0;width:44px;height:52px;display:grid;place-items:center;border:0;background:none;cursor:grab;touch-action:none;user-select:none;pointer-events:auto;padding:0;color:#173b36}
+.pdf-scroll-thumb:active{cursor:grabbing}.pdf-scroll-grip{display:grid;place-items:center;width:28px;height:48px;font-size:16px;border-radius:30px;border:1px solid #ffffffba;background:#eff9f4cc;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 18px #173b3625}
+.pdf-page-bubble{position:absolute;right:52px;top:7px;white-space:nowrap;border-radius:24px;padding:10px 14px;font-size:12px;font-weight:600;background:#eff9f4e6;border:1px solid #ffffffc9;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 4px 18px #173b3625}
+.pdf-scroll-thumb:focus-visible{outline:2px solid #348f6c;border-radius:30px;outline-offset:2px}.pdf-message{padding:30px;text-align:center;font-size:14px;line-height:1.7}.pdf-message button,.pdf-message a{display:inline-block;margin:12px;padding:10px 16px;border:1px solid #93aa9c;border-radius:12px}
+.dark .glass-pdf{background:#141b18;color:#e5f1e9}.dark .pdf-tools{background:#14271e;border-color:#304539}.dark .pdf-scroll-grip,.dark .pdf-page-bubble{background:#173b36db;color:#f0fff6;border-color:#ffffff60}.pdf-viewport:focus-visible{outline:2px solid #348f6c;outline-offset:-2px}
