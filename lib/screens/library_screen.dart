@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../theme/category_theme.dart';
 import '../widgets/book_cover.dart';
 import 'reader_screen.dart';
+import 'privacy_policy_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({
@@ -291,9 +292,22 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _ModernBottomNavigation(
-        selectedIndex: _tabIndex,
-        onSelected: (index) => setState(() => _tabIndex = index),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextButton.icon(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                  builder: (_) => const PrivacyPolicyScreen()),
+            ),
+            icon: const Icon(Icons.privacy_tip_outlined, size: 16),
+            label: const Text('Privacy Policy'),
+          ),
+          _ModernBottomNavigation(
+            selectedIndex: _tabIndex,
+            onSelected: (index) => setState(() => _tabIndex = index),
+          ),
+        ],
       ),
     );
   }

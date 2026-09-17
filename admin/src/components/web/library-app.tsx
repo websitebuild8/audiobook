@@ -196,6 +196,9 @@ export function LibraryApp() {
 
           {!loading && pages > 1 && <Pagination page={page} pages={pages} onChange={setPage} />}
         </section>
+        <footer className="mt-10 text-center">
+          <a href="/privacy" lang="en" className="text-sm text-emerald-800 underline underline-offset-4 dark:text-emerald-300">Privacy Policy</a>
+        </footer>
       </main>
 
       <MobileNav active={tab} onSelect={selectTab} />
