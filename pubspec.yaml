@@ -1,7 +1,7 @@
 name: maktaba_athariyya
 description: A fast, fully offline Dhivehi and Arabic book and audiobook reader.
 publish_to: none
-version: 1.0.0+2
+version: 1.0.0+3
 
 environment:
   sdk: ">=3.6.0 <4.0.0"
