@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/library_screen.dart';
+import 'services/download_service.dart';
 import 'theme/app_theme.dart';
 
 class MaktabaApp extends StatefulWidget {
@@ -12,7 +13,7 @@ class MaktabaApp extends StatefulWidget {
   State<MaktabaApp> createState() => _MaktabaAppState();
 }
 
-class _MaktabaAppState extends State<MaktabaApp> {
+class _MaktabaAppState extends State<MaktabaApp> with WidgetsBindingObserver {
   static const _themeKey = 'dark_mode';
   bool _darkMode = false;
   bool _ready = false;
@@ -20,7 +21,23 @@ class _MaktabaAppState extends State<MaktabaApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _initialize();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      DownloadService.instance.resumeUpdates().catchError((Object error) {
+        debugPrint('Download update unavailable: $error');
+      });
+    }
   }
 
   Future<void> _initialize() async {

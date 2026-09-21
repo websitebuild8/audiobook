@@ -1,4 +1,4 @@
-import 'dart:ui';
+import 'app_glass.dart';
 import 'package:flutter/material.dart';
 
 /// A page scrubber with a large touch target and a drag-only page label.
@@ -130,19 +130,6 @@ class _GlassPageScrollbarState extends State<GlassPageScrollbar> {
     });
   }
 
-  Widget _glass({required bool dark, required Widget child}) => ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
-          child: DecoratedBox(
-              decoration: BoxDecoration(
-                color:
-                    (dark ? const Color(0xFF173B36) : const Color(0xFFF1FAF5))
-                        .withValues(alpha: .82),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withValues(alpha: .5)),
-              ),
-              child: child),
-        ),
-      );
+  Widget _glass({required bool dark, required Widget child}) =>
+      AppGlass(child: child);
 }

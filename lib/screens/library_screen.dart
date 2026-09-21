@@ -7,6 +7,7 @@ import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/category_theme.dart';
 import '../widgets/book_cover.dart';
+import '../widgets/app_glass.dart';
 import 'reader_screen.dart';
 import 'privacy_policy_screen.dart';
 
@@ -292,22 +293,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                  builder: (_) => const PrivacyPolicyScreen()),
-            ),
-            icon: const Icon(Icons.privacy_tip_outlined, size: 16),
-            label: const Text('Privacy Policy'),
-          ),
-          _ModernBottomNavigation(
-            selectedIndex: _tabIndex,
-            onSelected: (index) => setState(() => _tabIndex = index),
-          ),
-        ],
+      bottomNavigationBar: _ModernBottomNavigation(
+        selectedIndex: _tabIndex,
+        onSelected: (index) => setState(() => _tabIndex = index),
       ),
     );
   }
@@ -328,19 +316,9 @@ class _ModernBottomNavigation extends StatelessWidget {
       top: false,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: AppTheme.ink,
-            borderRadius: BorderRadius.circular(25),
-            border: Border.all(color: Theme.of(context).colorScheme.outline),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.ink.withValues(alpha: .2),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
+        child: AppGlass(
+          radius: 25,
+          tint: const Color(0xDD082D24),
           child: SizedBox(
             height: 66,
             child: Row(
@@ -1006,14 +984,18 @@ class _Header extends StatelessWidget {
               ],
             ),
           ),
-          Container(
-            width: 42,
-            height: 42,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              shape: BoxShape.circle,
-              border: Border.all(color: Theme.of(context).colorScheme.outline),
+          AppGlass(
+            child: IconButton(
+              tooltip: 'Privacy Policy',
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                    builder: (_) => const PrivacyPolicyScreen()),
+              ),
+              icon: const Icon(Icons.privacy_tip_outlined, size: 20),
             ),
+          ),
+          const SizedBox(width: 8),
+          AppGlass(
             child: IconButton(
               tooltip: darkMode ? 'ލައިޓް މޯޑް' : 'ޑާކް މޯޑް',
               onPressed: onToggleTheme,
