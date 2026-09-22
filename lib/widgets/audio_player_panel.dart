@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 
 import '../models/book.dart';
-import '../services/progress_service.dart';
+import '../services/audiobook_audio_handler.dart';
 
 class AudioPlayerPanel extends StatefulWidget {
   const AudioPlayerPanel({super.key, required this.book});
@@ -14,102 +14,57 @@ class AudioPlayerPanel extends StatefulWidget {
   State<AudioPlayerPanel> createState() => _AudioPlayerPanelState();
 }
 
-class _AudioPlayerPanelState extends State<AudioPlayerPanel>
-    with WidgetsBindingObserver {
-  final _player = AudioPlayer();
-  StreamSubscription<Duration>? _positionSubscription;
-  int _chapter = 0;
-  bool _loading = true;
-  double _speed = 1;
+class _AudioPlayerPanelState extends State<AudioPlayerPanel> {
+  final _handler = AudiobookAudioHandler.instance;
+  StreamSubscription<dynamic>? _subscription;
+  bool _requesting = false;
+  bool get _active => _handler.book?.id == widget.book.id;
+  AudioPlayer get _player => _handler.player;
+  int get _chapter => _active ? _handler.chapter : 0;
+  bool get _loading => _requesting || (_active && _handler.loading);
+  double get _speed => _player.speed;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _restore();
-  }
-
-  Future<void> _restore() async {
-    final saved = await ProgressService.audioFor(widget.book.id);
-    _chapter = saved.chapter.clamp(0, widget.book.audio.length - 1);
-    await _loadChapter(_chapter, position: saved.position);
-    _positionSubscription = _player.positionStream.listen((position) {
-      if (position.inSeconds % 5 == 0) {
-        ProgressService.saveAudio(widget.book.id, _chapter, position);
-      }
+    _subscription = _handler.playbackState.listen((_) {
+      if (mounted) setState(() {});
     });
   }
 
-  Future<void> _loadChapter(
-    int index, {
-    Duration? position,
-    bool autoPlay = false,
-  }) async {
-    if (!mounted) return;
-    setState(() => _loading = true);
+  Future<void> _togglePlay() async {
+    if (_active && _player.playing) {
+      await _handler.pause();
+      return;
+    }
+    setState(() => _requesting = true);
     try {
-      final source = widget.book.audio[index].assetPath;
-      if (_isNetworkSource(source)) {
-        await _player.setUrl(source, initialPosition: position);
-      } else if (source.startsWith('/')) {
-        await _player.setFilePath(source, initialPosition: position);
-      } else {
-        await _player.setAsset(source, initialPosition: position);
-      }
-      await _player.setSpeed(_speed);
-      if (!mounted) return;
-      setState(() {
-        _chapter = index;
-        _loading = false;
-      });
-      if (autoPlay) await _player.play();
+      await _handler.playBook(widget.book);
     } catch (_) {
-      if (!mounted) return;
-      setState(() => _loading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('އޯޑިއޯ ލޯޑު ނުކުރެވުނު')));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('އޯޑިއޯ ލޯޑު ނުކުރެވުނު')));
+      }
+    } finally {
+      if (mounted) setState(() => _requesting = false);
     }
   }
 
-  Future<void> _changeChapter(int delta) async {
-    final next = _chapter + delta;
-    if (next < 0 || next >= widget.book.audio.length) return;
-    await ProgressService.saveAudio(widget.book.id, _chapter, _player.position);
-    await _loadChapter(next, autoPlay: true);
-  }
-
-  Future<void> _seekRelative(int seconds) async {
-    final duration = _player.duration ?? Duration.zero;
-    final targetMs = (_player.position.inMilliseconds + seconds * 1000).clamp(
-      0,
-      duration.inMilliseconds,
-    );
-    await _player.seek(Duration(milliseconds: targetMs));
-  }
-
+  Future<void> _changeChapter(int delta) =>
+      _handler.skipToQueueItem(_chapter + delta);
+  Future<void> _seekRelative(int seconds) => _handler.seekRelative(seconds);
   Future<void> _cycleSpeed() async {
     const speeds = [1.0, 1.25, 1.5, 2.0, .75];
-    final index = speeds.indexOf(_speed);
-    final next = speeds[(index + 1) % speeds.length];
-    await _player.setSpeed(next);
-    setState(() => _speed = next);
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
-      ProgressService.saveAudio(widget.book.id, _chapter, _player.position);
-    }
+    await _handler
+        .setSpeed(speeds[(speeds.indexOf(_speed) + 1) % speeds.length]);
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _positionSubscription?.cancel();
-    ProgressService.saveAudio(widget.book.id, _chapter, _player.position);
-    _player.dispose();
+    _subscription?.cancel();
+    // Playback belongs to the app and continues after leaving this screen.
+    unawaited(_handler.saveProgress());
     super.dispose();
   }
 
@@ -162,8 +117,13 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
                       ],
                     ),
                   ),
+                  IconButton(
+                    tooltip: 'Stop audio',
+                    onPressed: _active ? _handler.stop : null,
+                    icon: const Icon(Icons.stop_rounded),
+                  ),
                   TextButton(
-                    onPressed: _cycleSpeed,
+                    onPressed: _active ? _cycleSpeed : null,
                     child: Text(
                       '${_formatSpeed(_speed)}×',
                       textDirection: TextDirection.ltr,
@@ -178,8 +138,10 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
               StreamBuilder<Duration>(
                 stream: _player.positionStream,
                 builder: (context, positionSnapshot) {
-                  final position = positionSnapshot.data ?? Duration.zero;
-                  final duration = _player.duration ?? Duration.zero;
+                  final position = _active ? _player.position : Duration.zero;
+                  final duration = _active
+                      ? (_player.duration ?? Duration.zero)
+                      : Duration.zero;
                   final max = duration.inMilliseconds <= 0
                       ? 1.0
                       : duration.inMilliseconds.toDouble();
@@ -204,7 +166,7 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
                             max: max,
                             onChanged: duration == Duration.zero
                                 ? null
-                                : (next) => _player.seek(
+                                : (next) => _handler.seek(
                                       Duration(milliseconds: next.round()),
                                     ),
                           ),
@@ -233,17 +195,21 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     IconButton(
-                      onPressed: _chapter > 0 ? () => _changeChapter(-1) : null,
+                      onPressed: _active && !_loading && _chapter > 0
+                          ? () => _changeChapter(-1)
+                          : null,
                       icon: const Icon(Icons.skip_previous_rounded),
                     ),
                     IconButton(
-                      onPressed: () => _seekRelative(-10),
+                      onPressed: _active && !_loading
+                          ? () => _seekRelative(-10)
+                          : null,
                       icon: const Icon(Icons.replay_10_rounded),
                     ),
                     StreamBuilder<PlayerState>(
                       stream: _player.playerStateStream,
                       builder: (context, snapshot) {
-                        final playing = snapshot.data?.playing ?? false;
+                        final playing = _active && _player.playing;
                         return IconButton.filled(
                           style: IconButton.styleFrom(
                             backgroundColor:
@@ -251,10 +217,7 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
                             foregroundColor: Colors.white,
                             minimumSize: const Size(52, 52),
                           ),
-                          onPressed: _loading
-                              ? null
-                              : () =>
-                                  playing ? _player.pause() : _player.play(),
+                          onPressed: _loading ? null : _togglePlay,
                           icon: _loading
                               ? const SizedBox(
                                   width: 20,
@@ -274,11 +237,14 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
                       },
                     ),
                     IconButton(
-                      onPressed: () => _seekRelative(30),
+                      onPressed:
+                          _active && !_loading ? () => _seekRelative(30) : null,
                       icon: const Icon(Icons.forward_30_rounded),
                     ),
                     IconButton(
-                      onPressed: _chapter < widget.book.audio.length - 1
+                      onPressed: _active &&
+                              !_loading &&
+                              _chapter < widget.book.audio.length - 1
                           ? () => _changeChapter(1)
                           : null,
                       icon: const Icon(Icons.skip_next_rounded),
@@ -309,9 +275,4 @@ class _AudioPlayerPanelState extends State<AudioPlayerPanel>
   String _formatSpeed(double value) => value == value.roundToDouble()
       ? value.toInt().toString()
       : value.toStringAsFixed(2).replaceFirst(RegExp(r'0$'), '');
-
-  bool _isNetworkSource(String source) {
-    final uri = Uri.tryParse(source);
-    return uri != null && (uri.scheme == 'https' || uri.scheme == 'http');
-  }
 }

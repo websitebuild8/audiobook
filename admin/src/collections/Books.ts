@@ -52,13 +52,23 @@ export const Books: CollectionConfig = {
           label: 'އޯޑިއޯ',
           fields: [
             {
+              name: 'publishReadingOnlyEdition',
+              type: 'checkbox',
+              label: 'Publish reading-only version too · PDF',
+              defaultValue: false,
+              admin: {
+                description: 'Publish this book as both an audiobook and a PDF-only version. Both use the same PDF and cover. Add audio chapters below, enable this option, then Publish. The PDF-only version downloads no audio. Requires the updated mobile app.',
+              },
+            },
+            {
               name: 'audioChapters',
               type: 'array',
               label: 'އޯޑިއޯ ބައިތައް',
               labels: { singular: 'އޯޑިއޯ ބައި', plural: 'އޯޑިއޯ ބައިތައް' },
+              admin: { description: 'Add a chapter for each audio file. Enter its title, upload or select audio, and set its playback order. One chapter is enough for a single-file audiobook.' },
               fields: [
                 { name: 'title', type: 'text', label: 'ބައިގެ ނަން', required: true },
-                { name: 'audio', type: 'upload', relationTo: 'media', label: 'އޯޑިއޯ ފައިލު', required: true },
+                { name: 'audio', type: 'upload', relationTo: 'media', label: 'އޯޑިއޯ ފައިލު', required: true, filterOptions: { mimeType: { contains: 'audio/' } } },
                 { name: 'order', type: 'number', label: 'ތަރުތީބު', required: true, min: 1 },
               ],
             },

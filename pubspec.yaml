@@ -19,6 +19,8 @@ dependencies:
   shared_preferences: ^2.5.3
   background_downloader: ^9.6.2
   liquid_glass_widgets: ^1.7.1
+  audio_service: ^0.18.19
+  audio_session: ^0.2.4
 
 dev_dependencies:
   flutter_test:

@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/library_screen.dart';
 import 'services/download_service.dart';
+import 'services/audiobook_audio_handler.dart';
 import 'theme/app_theme.dart';
 
 class MaktabaApp extends StatefulWidget {
@@ -33,6 +36,10 @@ class _MaktabaAppState extends State<MaktabaApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive) {
+      unawaited(AudiobookAudioHandler.current?.saveProgress());
+    }
     if (state == AppLifecycleState.resumed) {
       DownloadService.instance.resumeUpdates().catchError((Object error) {
         debugPrint('Download update unavailable: $error');

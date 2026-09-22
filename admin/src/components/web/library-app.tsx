@@ -23,12 +23,14 @@ import dynamic from 'next/dynamic'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
+import { expandBookEditions, isEditionId, type EditionId } from './book-editions'
 
 type Media = { id: number; url?: string | null; alt?: string | null; filename?: string | null }
 type Category = { id: number; name: string; slug: string; description?: string | null; order?: number | null; active?: boolean | null }
 type Chapter = { id?: string | null; title: string; order: number; audio: number | Media }
 type Book = {
-  id: number
+  id: EditionId
+  publishReadingOnlyEdition?: boolean | null
   title: string
   author?: string | null
   description?: string | null
@@ -64,7 +66,7 @@ function categoryOf(book: Book) {
 function readStored(key: string) {
   try {
     const value = JSON.parse(localStorage.getItem(key) || '[]')
-    return Array.isArray(value) ? value.filter((id): id is number => Number.isInteger(id)) : []
+    return Array.isArray(value) ? value.filter(isEditionId) : []
   } catch {
     return []
   }
@@ -80,8 +82,8 @@ export function LibraryApp() {
   const [category, setCategory] = useState<number | null>(null)
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<Book | null>(null)
-  const [bookmarks, setBookmarks] = useState<number[]>([])
-  const [recent, setRecent] = useState<number[]>([])
+  const [bookmarks, setBookmarks] = useState<EditionId[]>([])
+  const [recent, setRecent] = useState<EditionId[]>([])
   const [dark, setDark] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
@@ -96,7 +98,7 @@ export function LibraryApp() {
       if (!bookResponse.ok || !categoryResponse.ok) throw new Error('catalogue')
       const bookData = (await bookResponse.json()) as ApiList<Book>
       const categoryData = (await categoryResponse.json()) as ApiList<Category>
-      setBooks(bookData.docs)
+      setBooks(expandBookEditions(bookData.docs))
       setCategories(categoryData.docs)
     } catch {
       setError('ފޮތްތައް ލޯޑުނުވޭ. އިންޓަނެޓް ޗެކްކުރައްވާ.')
@@ -135,7 +137,7 @@ export function LibraryApp() {
   const pageBooks = visibleBooks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
   const featured = books.find((book) => book.featured) || books[0]
 
-  function toggleBookmark(id: number) {
+  function toggleBookmark(id: EditionId) {
     setBookmarks((current) => {
       const next = current.includes(id) ? current.filter((value) => value !== id) : [id, ...current]
       localStorage.setItem(BOOKMARK_KEY, JSON.stringify(next))

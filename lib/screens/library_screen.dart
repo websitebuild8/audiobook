@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../theme/category_theme.dart';
 import '../widgets/book_cover.dart';
 import '../widgets/app_glass.dart';
+import '../widgets/mini_audio_player.dart';
 import 'reader_screen.dart';
 import 'privacy_policy_screen.dart';
 
@@ -293,9 +294,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: _ModernBottomNavigation(
-        selectedIndex: _tabIndex,
-        onSelected: (index) => setState(() => _tabIndex = index),
+      bottomNavigationBar: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const MiniAudioPlayer(),
+          _ModernBottomNavigation(
+            selectedIndex: _tabIndex,
+            onSelected: (index) => setState(() => _tabIndex = index),
+          ),
+        ],
       ),
     );
   }

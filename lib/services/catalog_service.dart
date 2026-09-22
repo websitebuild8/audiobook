@@ -7,8 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/book.dart';
 
 abstract final class CatalogService {
-  static const apiBaseUrl =
-      'https://www.athariyya.online/api';
+  static const apiBaseUrl = 'https://www.athariyya.online/api';
   static const _cacheKey = 'remote_catalog_v1';
   static const _cacheTimeKey = 'remote_catalog_updated_at_v1';
   static const _cacheLifetime = Duration(minutes: 5);
@@ -104,7 +103,7 @@ abstract final class CatalogService {
     List<Map<String, dynamic>> documents,
   ) {
     return documents
-        .map((entry) {
+        .expand((entry) {
           final category = entry['category'];
           final categoryName = category is Map<String, dynamic>
               ? category['name'] as String? ?? ''
@@ -119,7 +118,7 @@ abstract final class CatalogService {
               ),
             );
           final id = entry['sourceId'] as String? ?? 'payload::${entry['id']}';
-          return Book(
+          final book = Book(
             id: id,
             title: entry['title'] as String? ?? '',
             category: categoryName,
@@ -137,6 +136,19 @@ abstract final class CatalogService {
                   ),
             ],
           );
+          return [
+            book,
+            if (entry['publishReadingOnlyEdition'] == true && book.hasAudio)
+              Book(
+                id: 'reading::${book.id}',
+                title: '${book.title} (PDF)',
+                category: book.category,
+                pdfAsset: book.pdfAsset,
+                pdfFileSize: book.pdfFileSize,
+                coverAsset: book.coverAsset,
+                showReaderNotice: book.showReaderNotice,
+              ),
+          ];
         })
         .where((book) => book.pdfAsset.isNotEmpty)
         .toList(growable: false);
