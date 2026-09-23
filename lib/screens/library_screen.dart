@@ -7,6 +7,7 @@ import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../theme/category_theme.dart';
 import '../widgets/book_cover.dart';
+import '../widgets/reading_progress.dart';
 import '../widgets/app_glass.dart';
 import '../widgets/mini_audio_player.dart';
 import '../widgets/audio_player_sheet.dart';
@@ -123,9 +124,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        bottom: false,
+        bottom: true,
         child: RefreshIndicator(
           onRefresh: _refreshCatalog,
           child: AnimatedSwitcher(
@@ -221,6 +223,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           darkMode: widget.darkMode,
                           onToggleTheme: widget.onToggleTheme,
                         ),
+                      ),
+                      SliverToBoxAdapter(
+                        child: ReadingProgress(
+                            bookIds: books.map((book) => book.id).toList()),
                       ),
                       SliverToBoxAdapter(
                         child: Padding(
@@ -341,7 +347,9 @@ class _ModernBottomNavigation extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
         child: AppGlass(
           radius: 25,
-          tint: const Color(0xDD082D24),
+          tint: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0x551C2228)
+              : const Color(0x66FFFFFF),
           child: SizedBox(
             height: 66,
             child: Row(
@@ -624,14 +632,16 @@ class _NavigationItem extends StatelessWidget {
             decoration: BoxDecoration(
               color: selected
                   ? (dark
-                      ? Theme.of(context).colorScheme.primary
-                      : Colors.white)
+                      ? Colors.white.withValues(alpha: .18)
+                      : Colors.white.withValues(alpha: .65))
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(
               icon,
-              color: selected && !dark ? AppTheme.emerald : Colors.white,
+              color: selected
+                  ? Theme.of(context).colorScheme.primary
+                  : Theme.of(context).colorScheme.onSurface,
               size: 24,
             ),
           ),
@@ -1129,8 +1139,11 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                                 book.title,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.light
+                                      ? Colors.black
+                                      : Colors.white,
                                   fontSize: 20,
                                   height: 1.5,
                                   fontWeight: FontWeight.w700,
@@ -1140,7 +1153,9 @@ class _FeaturedCarouselState extends State<_FeaturedCarousel> {
                               Text(
                                 '${book.audio.length} ބައި',
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: .7),
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
                                   fontSize: 13,
                                 ),
                               ),

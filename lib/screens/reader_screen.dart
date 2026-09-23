@@ -8,6 +8,7 @@ import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/audio_player_sheet.dart';
 import '../widgets/reader_notice.dart';
+import '../widgets/read_status.dart';
 import '../widgets/glass_page_scrollbar.dart';
 
 class ReaderScreen extends StatefulWidget {
@@ -165,6 +166,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   right: 0,
                   child: _ReaderHeader(
                     title: widget.book.title,
+                    bookId: widget.book.id,
                     page: _page,
                     pageCount: _pageCount,
                     bookmarked: _bookmarked,
@@ -246,6 +248,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
 class _ReaderHeader extends StatelessWidget {
   const _ReaderHeader({
     required this.title,
+    required this.bookId,
     required this.page,
     required this.pageCount,
     required this.bookmarked,
@@ -253,6 +256,7 @@ class _ReaderHeader extends StatelessWidget {
     required this.onBookmark,
   });
   final String title;
+  final String bookId;
   final int page;
   final int pageCount;
   final bool bookmarked;
@@ -297,6 +301,7 @@ class _ReaderHeader extends StatelessWidget {
                   ],
                 ),
               ),
+              ReadStatus(bookId: bookId, interactive: true),
               IconButton(
                 tooltip: 'ބުކްމާކް',
                 onPressed: onBookmark,

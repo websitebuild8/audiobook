@@ -5,6 +5,31 @@ import 'package:shared_preferences/shared_preferences.dart';
 void main() {
   setUp(() => SharedPreferences.setMockInitialValues({}));
 
+  test('summary counts only current catalogue books once and follows undo',
+      () async {
+    await ProgressService.setRead('a', true);
+    await ProgressService.setRead('removed', true);
+    expect(await ProgressService.readingSummary(['a', 'b', 'a']),
+        (completed: 1, total: 2));
+    await ProgressService.setRead('a', false);
+    expect(await ProgressService.readingSummary(['a', 'b']),
+        (completed: 0, total: 2));
+    expect(await ProgressService.readingSummary([]), (completed: 0, total: 0));
+  });
+
+  test('completion is explicit, persists independently and can be undone',
+      () async {
+    expect(await ProgressService.isRead('a'), isFalse);
+    await ProgressService.savePage('a', 100);
+    expect(await ProgressService.isRead('a'), isFalse);
+    await ProgressService.setRead('a', true);
+    expect(await ProgressService.isRead('a'), isTrue);
+    expect(await ProgressService.isRead('b'), isFalse);
+    await ProgressService.setRead('a', false);
+    expect(await ProgressService.isRead('a'), isFalse);
+    expect(await ProgressService.pageFor('a'), 100);
+  });
+
   test('recent reads keeps three distinct books in most-recent order',
       () async {
     await ProgressService.recordBookOpened('book-a', 2);

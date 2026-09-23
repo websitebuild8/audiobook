@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 import '../models/book.dart';
+import 'read_status.dart';
 import '../theme/category_theme.dart';
 
 class BookCover extends StatelessWidget {
@@ -93,6 +94,11 @@ class BookCover extends StatelessWidget {
                   bottomLeft: Radius.circular(1),
                 ),
                 child: cover,
+              ),
+              Positioned(
+                right: 5,
+                top: 5,
+                child: ReadStatus(bookId: book.id),
               ),
               Positioned(
                 left: 0,

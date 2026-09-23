@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class RecentRead {
@@ -15,6 +16,31 @@ class RecentRead {
 }
 
 abstract final class ProgressService {
+  static final readStatusChanges = ValueNotifier<int>(0);
+
+  static Future<({int completed, int total})> readingSummary(
+      Iterable<String> bookIds) async {
+    final prefs = await SharedPreferences.getInstance();
+    final ids = bookIds.toSet();
+    return (
+      completed: ids.where((id) => prefs.getBool('read::$id') == true).length,
+      total: ids.length
+    );
+  }
+
+  static Future<bool> isRead(String bookId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('read::$bookId') ?? false;
+  }
+
+  static Future<void> setRead(String bookId, bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (!await prefs.setBool('read::$bookId', value)) {
+      throw StateError('Could not save reading status');
+    }
+    readStatusChanges.value++;
+  }
+
   static const _recentReadsKey = 'recent_reads_v1';
   static const _recentReadsLimit = 3;
   static String _pageKey(String bookId) => 'page::$bookId';
