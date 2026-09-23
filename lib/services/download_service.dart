@@ -24,7 +24,7 @@ class BookDownloadState {
       totalBytes > 0 ? (downloadedBytes / totalBytes).clamp(0, 1) : null;
 }
 
-/// Aggregates a whole book: a finished PDF alone is not a finished audiobook.
+/// Aggregates native task progress (PDF and chapters are tracked separately).
 BookDownloadState aggregateDownloadState(List<TaskRecord> records, int count) {
   final complete = records.length == count &&
       records.every((r) => r.status == TaskStatus.complete);
@@ -52,7 +52,7 @@ BookDownloadState aggregateDownloadState(List<TaskRecord> records, int count) {
         : active
             ? BookDownloadStatus.downloading
             : BookDownloadStatus.failed,
-    totalBytes: total,
+    totalBytes: knownSizes ? total : 0,
     downloadedBytes: received,
   );
 }
@@ -71,6 +71,7 @@ class DownloadService extends ChangeNotifier {
   final FileDownloader _downloader;
   final Directory? _rootOverride;
   final Map<String, BookDownloadState> _states = {};
+  final Map<String, BookDownloadState> _fileStates = {};
   final Map<String, List<DownloadTask>> _plans = {};
   final Map<String, TaskRecord> _records = {};
   final Map<String, Future<void>> _operations = {};
@@ -147,15 +148,24 @@ class DownloadService extends ChangeNotifier {
     }
   }
 
+  String _fileKey(String id, String filename) => '$id::$filename';
+  String _audioFilename(Book book, int index) =>
+      '${index.toString().padLeft(3, '0')}${_extension(book.audio[index].downloadSource)}';
+
+  BookDownloadState chapterStateFor(Book book, int index) =>
+      _fileStates[_fileKey(book.id, _audioFilename(book, index))] ??
+      const BookDownloadState();
+
   void _refresh(String id) {
     final tasks = _plans[id];
     if (tasks == null || _operations.containsKey(id)) return;
-    _setState(
-        id,
-        aggregateDownloadState([
-          for (final t in tasks)
-            if (_records[t.taskId] case final r?) r
-        ], tasks.length));
+    for (final task in tasks) {
+      final record = _records[task.taskId];
+      final state = aggregateDownloadState([if (record != null) record], 1);
+      _fileStates[_fileKey(id, task.filename)] = state;
+      if (task.filename == 'book.pdf') _states[id] = state;
+    }
+    notifyListeners();
   }
 
   // Serialize start/cancel/remove per book, while allowing different books together.
@@ -178,148 +188,166 @@ class DownloadService extends ChangeNotifier {
   Future<void> ensureState(Book book) async {
     try {
       await initialize();
-      if (_operations.containsKey(book.id)) return;
-      if (_plans.containsKey(book.id)) {
-        _refresh(book.id);
-        return;
-      }
-      final before = _states[book.id];
-      final local = await localBook(book);
-      // A download may have started while the filesystem check was in flight.
-      if (_operations.containsKey(book.id) ||
-          _plans.containsKey(book.id) ||
-          !identical(before, _states[book.id])) {
-        return;
-      }
-      _setState(
-          book.id,
-          BookDownloadState(
-              status: local == null
-                  ? BookDownloadStatus.notDownloaded
-                  : BookDownloadStatus.downloaded));
+      await _exclusive(book.id, () async {
+        final directory = await _bookDirectory(book.id);
+        final pdf = File('${directory.path}/book.pdf');
+        if (await pdf.exists() && await pdf.length() > 0) {
+          _states[book.id] =
+              const BookDownloadState(status: BookDownloadStatus.downloaded);
+        }
+        for (var i = 0; i < book.audio.length; i++) {
+          final path = await localAudioPath(book, i);
+          if (path != null) {
+            _fileStates[_fileKey(book.id, _audioFilename(book, i))] =
+                const BookDownloadState(status: BookDownloadStatus.downloaded);
+          }
+        }
+        for (final task in _plans[book.id] ?? <DownloadTask>[]) {
+          final file = await _fileForTask(task);
+          if (await file.exists() && await file.length() > 0) {
+            _records[task.taskId] =
+                TaskRecord(task, TaskStatus.complete, 1, await file.length());
+          }
+        }
+        notifyListeners();
+      });
     } catch (_) {
-      if (!_operations.containsKey(book.id)) {
-        _setState(book.id,
-            const BookDownloadState(status: BookDownloadStatus.failed));
-      }
+      _setState(
+          book.id, const BookDownloadState(status: BookDownloadStatus.failed));
     }
   }
 
+  Future<String?> localAudioPath(Book book, int index) async {
+    final directory = await _bookDirectory(book.id);
+    final file = File('${directory.path}/audio/${_audioFilename(book, index)}');
+    return await file.exists() && await file.length() > 0 ? file.path : null;
+  }
+
+  /// Missing audio remains streamable; only the PDF is required for reading.
   Future<Book?> localBook(Book book) async {
     final directory = await _bookDirectory(book.id);
     final pdf = File('${directory.path}/book.pdf');
     if (!await pdf.exists() || await pdf.length() == 0) return null;
-    final audioPaths = <String>[];
-    for (var index = 0; index < book.audio.length; index++) {
-      final file = File(
-          '${directory.path}/audio/${index.toString().padLeft(3, '0')}${_extension(book.audio[index].assetPath)}');
-      if (!await file.exists() || await file.length() == 0) return null;
-      audioPaths.add(file.path);
-    }
-    return book.copyWithLocalMedia(pdfPath: pdf.path, audioPaths: audioPaths);
+    return _withAvailableAudio(book, pdf.path);
   }
 
-  Future<void> download(Book book) => _exclusive(book.id, () async {
-        try {
-          await initialize();
-          final oldTasks = _plans[book.id] ?? [];
-          if (oldTasks.any((t) {
-            final s = _records[t.taskId]?.status;
-            return s != null && !s.isFinalState && s != TaskStatus.paused;
-          })) {
-            return;
-          }
-          _setState(book.id,
-              const BookDownloadState(status: BookDownloadStatus.downloading));
-          final directory = 'book_downloads/${_safeId(book.id)}';
-          final tasks = <DownloadTask>[
-            DownloadTask(
-                url: book.pdfAsset,
-                filename: 'book.pdf',
+  Future<Book> playableBook(Book book) =>
+      _withAvailableAudio(book, book.pdfAsset);
+
+  Future<Book> _withAvailableAudio(Book book, String pdfPath) async =>
+      book.copyWithLocalMedia(pdfPath: pdfPath, audioPaths: [
+        for (var i = 0; i < book.audio.length; i++)
+          await localAudioPath(book, i) ?? book.audio[i].downloadSource,
+      ]);
+
+  /// The library's download action downloads the PDF only.
+  Future<void> download(Book book) => _downloadFile(book);
+  Future<void> downloadChapter(Book book, int index) =>
+      _downloadFile(book, index: index);
+
+  Future<void> _downloadFile(Book book, {int? index}) =>
+      _exclusive(book.id, () async {
+        await initialize();
+        final filename =
+            index == null ? 'book.pdf' : _audioFilename(book, index);
+        final url =
+            index == null ? book.pdfAsset : book.audio[index].downloadSource;
+        final tasks = _plans.putIfAbsent(book.id, () => []);
+        final previous = tasks.where((t) => t.filename == filename).firstOrNull;
+        final previousRecord =
+            previous == null ? null : _records[previous.taskId];
+        if (previousRecord != null &&
+            !previousRecord.status.isFinalState &&
+            previousRecord.status != TaskStatus.paused) {
+          return;
+        }
+        final directory =
+            'book_downloads/${_safeId(book.id)}${index == null ? '' : '/audio'}';
+        final task = previous != null &&
+                previous.url == url &&
+                previousRecord?.status == TaskStatus.paused
+            ? previous
+            : DownloadTask(
+                url: url,
+                filename: filename,
                 directory: directory,
                 baseDirectory: BaseDirectory.applicationSupport,
                 group: _group,
                 metaData: book.id,
                 updates: Updates.statusAndProgress,
                 retries: 5,
-                allowPause: true),
-            for (var i = 0; i < book.audio.length; i++)
-              DownloadTask(
-                  url: book.audio[i].assetPath,
-                  filename:
-                      '${i.toString().padLeft(3, '0')}${_extension(book.audio[i].assetPath)}',
-                  directory: '$directory/audio',
-                  baseDirectory: BaseDirectory.applicationSupport,
-                  group: _group,
-                  metaData: book.id,
-                  updates: Updates.statusAndProgress,
-                  retries: 5,
-                  allowPause: true),
-          ];
-          // Retain native pause data and completed chapters when retrying.
-          for (var i = 0; i < tasks.length; i++) {
-            final matching = oldTasks.where((t) =>
-                t.url == tasks[i].url && t.filename == tasks[i].filename);
-            if (matching.isNotEmpty &&
-                _records[matching.first.taskId]?.status == TaskStatus.paused) {
-              tasks[i] = matching.first;
-            }
-          }
-          _plans[book.id] = tasks;
+                allowPause: true);
+        tasks.removeWhere((t) => t.filename == filename);
+        tasks.add(task);
+        try {
           await _savePlan(book.id);
-          // Enqueue every file now. Native execution must not depend on Dart
-          // waking up to enqueue the next audiobook chapter.
-          for (final task in tasks) {
-            final file = await _fileForTask(task);
-            if (await file.exists() && await file.length() > 0) {
-              _records[task.taskId] =
-                  TaskRecord(task, TaskStatus.complete, 1, await file.length());
-              continue;
-            }
-            final wasPaused =
-                _records[task.taskId]?.status == TaskStatus.paused;
+          final file = await _fileForTask(task);
+          if (await file.exists() && await file.length() > 0) {
             _records[task.taskId] =
-                TaskRecord(task, TaskStatus.enqueued, 0, -1);
-            var accepted = false;
-            try {
-              if (wasPaused) accepted = await _downloader.resume(task);
-              if (!accepted) accepted = await _downloader.enqueue(task);
-            } catch (_) {
-              accepted = false;
-            }
-            if (!accepted) {
-              _records[task.taskId] =
-                  TaskRecord(task, TaskStatus.failed, 0, -1);
-            }
+                TaskRecord(task, TaskStatus.complete, 1, await file.length());
+            return;
           }
+          final size =
+              index == null ? book.pdfFileSize : book.audio[index].fileSize;
+          _records[task.taskId] =
+              TaskRecord(task, TaskStatus.enqueued, 0, size);
+          _fileStates[_fileKey(book.id, filename)] = BookDownloadState(
+              status: BookDownloadStatus.downloading, totalBytes: size);
+          if (index == null) {
+            _states[book.id] = _fileStates[_fileKey(book.id, filename)]!;
+          }
+          notifyListeners();
+          var accepted = false;
+          if (identical(task, previous) &&
+              previousRecord?.status == TaskStatus.paused) {
+            accepted = await _downloader.resume(task);
+          }
+          if (!accepted) accepted = await _downloader.enqueue(task);
+          if (!accepted) throw StateError('Download was not accepted');
         } catch (_) {
-          for (final t in _plans[book.id] ?? <DownloadTask>[]) {
-            _records.putIfAbsent(
-                t.taskId, () => TaskRecord(t, TaskStatus.failed, 0, -1));
-          }
-          _setState(book.id,
-              const BookDownloadState(status: BookDownloadStatus.failed));
+          _records[task.taskId] = TaskRecord(task, TaskStatus.failed, 0, -1);
         }
       });
 
-  Future<void> cancel(String id) => _exclusive(id, () => _cancel(id));
+  // Cancelling the PDF must not cancel individually requested audio files.
+  Future<void> cancel(String id) =>
+      _exclusive(id, () => _cancel(id, filename: 'book.pdf'));
+  Future<void> cancelChapter(Book book, int index) => _exclusive(
+      book.id, () => _cancel(book.id, filename: _audioFilename(book, index)));
 
-  Future<void> _cancel(String id) async {
+  Future<void> _cancel(String id, {String? filename}) async {
     await initialize();
-    await _downloader.cancelTasksWithIds(
-        [for (final t in _plans[id] ?? <DownloadTask>[]) t.taskId]);
-    for (final t in _plans[id] ?? <DownloadTask>[]) {
-      final r = _records[t.taskId];
-      if (r?.status != TaskStatus.complete) {
+    final tasks = (_plans[id] ?? <DownloadTask>[])
+        .where((t) => filename == null || t.filename == filename)
+        .toList();
+    await _downloader.cancelTasksWithIds([
+      for (final t in tasks)
+        if (_records[t.taskId]?.status != TaskStatus.complete) t.taskId
+    ]);
+    for (final t in tasks) {
+      if (_records[t.taskId]?.status != TaskStatus.complete) {
         _records[t.taskId] = TaskRecord(t, TaskStatus.canceled, 0, -1);
       }
     }
   }
 
+  Future<void> removeChapter(Book book, int index) =>
+      _exclusive(book.id, () async {
+        final filename = _audioFilename(book, index);
+        await _cancel(book.id, filename: filename);
+        _plans[book.id]?.removeWhere((t) => t.filename == filename);
+        if (_plans.containsKey(book.id)) await _savePlan(book.id);
+        final path = await localAudioPath(book, index);
+        if (path != null) await File(path).delete();
+        _fileStates.remove(_fileKey(book.id, filename));
+        notifyListeners();
+      });
+
   Future<void> remove(Book book) async {
     await _exclusive(book.id, () async {
       await _cancel(book.id);
       _plans.remove(book.id);
+      _fileStates.removeWhere((key, _) => key.startsWith('${book.id}::'));
       final manifest = await _manifest(book.id);
       if (await manifest.exists()) await manifest.delete();
       final target = await _bookDirectory(book.id);

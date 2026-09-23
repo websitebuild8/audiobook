@@ -95,6 +95,33 @@ void main() {
     await tester.runAsync(() => handler.dispose());
   });
 
+  test(
+      'selecting a chapter starts that chapter and refreshing local sources preserves progress',
+      () async {
+    var downloaded = false;
+    await handler.dispose();
+    player = FakePlayer();
+    handler = AudiobookAudioHandler(
+        player: player,
+        resolveBook: (next) async => downloaded
+            ? next.copyWithLocalMedia(
+                pdfPath: next.pdfAsset,
+                audioPaths: ['/offline/one.mp3', '/offline/two.mp3'])
+            : next);
+    await handler.playBook(book, chapterIndex: 1);
+    expect(player.currentIndex, 1);
+    expect(player.position, Duration.zero);
+    await handler.seek(const Duration(seconds: 45));
+    downloaded = true;
+    await handler.playBook(book);
+    expect(handler.book!.audio[1].assetPath, '/offline/two.mp3');
+    expect(player.currentIndex, 1);
+    expect(player.position.inSeconds, 45);
+    await handler.playBook(book, chapterIndex: 0);
+    expect(player.currentIndex, 0);
+    expect(player.position, Duration.zero);
+  });
+
   test('stop during loading prevents delayed automatic playback', () async {
     player.loadGate = Completer<void>();
     final loading = handler.playBook(book);

@@ -77,66 +77,146 @@ void main() {
     service.dispose();
     await directory.delete(recursive: true);
   });
-  test('queues every chapter and prevents simultaneous duplicate starts',
+
+  Future<File> complete(Task task) async {
+    final file = File(
+        '${directory.path}/${task.directory.substring('book_downloads/'.length)}/${task.filename}');
+    await file.parent.create(recursive: true);
+    await file.writeAsString('downloaded content');
+    native.status!(TaskStatusUpdate(task, TaskStatus.complete));
+    return file;
+  }
+
+  test(
+      'PDF download queues only the PDF and duplicate taps do not duplicate tasks',
       () async {
     await Future.wait([service.download(book), service.download(book)]);
-    expect(native.tasks, hasLength(3));
-    await service.ensureState(book); // A rebuilt tab must not clear progress.
+    expect(native.tasks, hasLength(1));
+    expect(native.tasks.single.filename, 'book.pdf');
+    await service.ensureState(book);
     expect(service.stateFor(book.id).status, BookDownloadStatus.downloading);
+    await complete(native.tasks.single);
+    final local = await service.localBook(book);
+    expect(local, isNotNull);
+    expect(local!.audio.first.assetPath, book.audio.first.assetPath);
+    expect(service.stateFor(book.id).status, BookDownloadStatus.downloaded);
+  });
+
+  test('chapter downloads are independent of PDF and sibling chapters',
+      () async {
+    await Future.wait(
+        [service.downloadChapter(book, 1), service.downloadChapter(book, 1)]);
+    expect(native.tasks, hasLength(1));
+    expect(native.tasks.single.url, book.audio[1].assetPath);
+    expect(service.stateFor(book.id).status, BookDownloadStatus.notDownloaded);
+    expect(service.chapterStateFor(book, 0).status,
+        BookDownloadStatus.notDownloaded);
+    final file = await complete(native.tasks.single);
+    final playable = await service.playableBook(book);
+    expect(playable.audio[1].assetPath, file.path);
+    expect(playable.audio[1].downloadSource, book.audio[1].assetPath);
     expect(await service.localBook(book), isNull);
   });
-  test('retry and a new app session keep completed chapters', () async {
+
+  test('cancelling one file leaves the PDF and other chapter downloading',
+      () async {
     await service.download(book);
-    final pdf = native.tasks.first;
-    final completed = File(
-        '${directory.path}/${pdf.directory.substring('book_downloads/'.length)}/${pdf.filename}');
-    await completed.parent.create(recursive: true);
-    await completed.writeAsString('completed PDF');
-    native.status!(TaskStatusUpdate(pdf, TaskStatus.complete));
+    await service.downloadChapter(book, 0);
+    await service.downloadChapter(book, 1);
+    await service.cancelChapter(book, 0);
+    expect(service.chapterStateFor(book, 0).status, BookDownloadStatus.failed);
+    expect(service.chapterStateFor(book, 1).status,
+        BookDownloadStatus.downloading);
+    expect(service.stateFor(book.id).status, BookDownloadStatus.downloading);
     await service.cancel(book.id);
+    expect(service.chapterStateFor(book, 1).status,
+        BookDownloadStatus.downloading);
+  });
+
+  test(
+      'completed chapters survive restart and only a failed chapter is retried',
+      () async {
+    await service.downloadChapter(book, 0);
+    final saved = await complete(native.tasks.single);
+    await service.downloadChapter(book, 1);
+    native.status!(TaskStatusUpdate(native.tasks.last, TaskStatus.failed));
     final nextNative = FakeDownloader();
     final restored = DownloadService.forTesting(nextNative, directory);
     await restored.initialize();
-    await restored.download(book);
-    expect(nextNative.tasks, hasLength(2));
-    expect(nextNative.tasks.every((t) => t.filename.endsWith('.mp3')), isTrue);
-    expect(await completed.readAsString(), 'completed PDF');
+    await restored.downloadChapter(book, 1);
+    expect(nextNative.tasks, hasLength(1));
+    expect(nextNative.tasks.single.url, book.audio[1].assetPath);
+    expect(restored.chapterStateFor(book, 0).status,
+        BookDownloadStatus.downloaded);
+    expect(await saved.readAsString(), 'downloaded content');
     restored.dispose();
   });
-  test('failure of a chapter never marks the whole audiobook downloaded',
+
+  test(
+      'removing a chapter retains the PDF and sibling audio, with the original URL available',
       () async {
     await service.download(book);
-    native.status!(TaskStatusUpdate(native.tasks[0], TaskStatus.complete));
-    native.status!(TaskStatusUpdate(native.tasks[1], TaskStatus.complete));
-    native.status!(TaskStatusUpdate(native.tasks[2], TaskStatus.failed));
-    expect(service.stateFor(book.id).status, BookDownloadStatus.failed);
+    await complete(native.tasks.last);
+    await service.downloadChapter(book, 0);
+    await complete(native.tasks.last);
+    await service.downloadChapter(book, 1);
+    await complete(native.tasks.last);
+    final local = (await service.localBook(book))!;
+    await service.removeChapter(local, 0);
+    expect(await service.localAudioPath(book, 0), isNull);
+    expect(await service.localAudioPath(book, 1), isNotNull);
+    expect(await service.localBook(book), isNotNull);
+    expect(service.chapterStateFor(book, 0).status,
+        BookDownloadStatus.notDownloaded);
+    await service.downloadChapter(local, 0);
+    expect(native.tasks.last.url, book.audio[0].assetPath);
   });
-  test('remove cancels tasks and removes only that book', () async {
+
+  test('legacy downloaded files are recognized without downloading again',
+      () async {
+    // Existing releases store files in these same book directories.
     await service.download(book);
-    await service.remove(book);
-    expect(service.stateFor(book.id).status, BookDownloadStatus.notDownloaded);
-    expect(await directory.list().toList(), isEmpty);
+    final pdf = native.tasks.single;
+    await complete(pdf);
+    final legacyAudio = File(
+        '${directory.path}/${pdf.directory.substring('book_downloads/'.length)}/audio/000.mp3');
+    await legacyAudio.parent.create(recursive: true);
+    await legacyAudio.writeAsString('legacy audio');
+    await service.ensureState(book);
+    expect(
+        service.chapterStateFor(book, 0).status, BookDownloadStatus.downloaded);
+    expect(
+        (await service.localBook(book))!.audio[0].assetPath, legacyAudio.path);
+    await service.downloadChapter(book, 0);
+    expect(native.tasks, hasLength(1));
   });
-  test('native enqueue errors leave a retryable state', () async {
+
+  test('native enqueue errors leave a retryable individual file', () async {
     native.reject = true;
-    await service.download(book);
-    expect(service.stateFor(book.id).status, BookDownloadStatus.failed);
+    await service.downloadChapter(book, 1);
+    expect(service.chapterStateFor(book, 1).status, BookDownloadStatus.failed);
     native.reject = false;
-    await service.download(book);
-    expect(native.tasks, hasLength(3));
-    expect(service.stateFor(book.id).status, BookDownloadStatus.downloading);
+    await service.downloadChapter(book, 1);
+    expect(native.tasks, hasLength(1));
+    expect(service.chapterStateFor(book, 1).status,
+        BookDownloadStatus.downloading);
   });
-  test('two books queue independently and cancel does not cross books',
+
+  test(
+      'remove book cancels every associated file but leaves another book alone',
       () async {
     const other = Book(
         id: 'two',
         title: 'Other',
         category: 'test',
         pdfAsset: 'https://example.com/other.pdf');
-    await Future.wait([service.download(book), service.download(other)]);
-    expect(native.tasks, hasLength(4));
-    await service.cancel(book.id);
+    await service.download(book);
+    await service.downloadChapter(book, 1);
+    await service.download(other);
+    await service.remove(book);
+    expect(service.stateFor(book.id).status, BookDownloadStatus.notDownloaded);
+    expect(service.chapterStateFor(book, 1).status,
+        BookDownloadStatus.notDownloaded);
     expect(service.stateFor(other.id).status, BookDownloadStatus.downloading);
-    expect(service.stateFor(book.id).status, BookDownloadStatus.failed);
   });
 }

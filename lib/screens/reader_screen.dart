@@ -6,7 +6,7 @@ import 'package:pdfrx/pdfrx.dart';
 import '../models/book.dart';
 import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
-import '../widgets/audio_player_panel.dart';
+import '../widgets/audio_player_sheet.dart';
 import '../widgets/reader_notice.dart';
 import '../widgets/glass_page_scrollbar.dart';
 
@@ -178,8 +178,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     curve: Curves.easeOutCubic,
                     left: 12,
                     right: 12,
-                    bottom: _controlsVisible ? 10 : -190,
-                    child: AudioPlayerPanel(book: widget.book),
+                    bottom: _controlsVisible
+                        ? MediaQuery.paddingOf(context).bottom + 10
+                        : -190,
+                    child: AudioPlayerBar(book: widget.book),
                   ),
                 if (!widget.book.hasAudio)
                   AnimatedPositioned(
@@ -195,7 +197,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
                   Positioned(
                     top: MediaQuery.paddingOf(context).top + 86,
                     bottom: MediaQuery.paddingOf(context).bottom +
-                        (widget.book.hasAudio ? 180 : 64),
+                        (widget.book.hasAudio ? 110 : 64),
                     right: 4,
                     width: 120,
                     child: ValueListenableBuilder(

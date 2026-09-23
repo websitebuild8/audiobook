@@ -9,6 +9,8 @@ import '../theme/category_theme.dart';
 import '../widgets/book_cover.dart';
 import '../widgets/app_glass.dart';
 import '../widgets/mini_audio_player.dart';
+import '../widgets/audio_player_sheet.dart';
+import '../services/audiobook_audio_handler.dart';
 import 'reader_screen.dart';
 import 'privacy_policy_screen.dart';
 
@@ -73,14 +75,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
               const SizedBox(height: 8),
               Text(
                 book.hasAudio
-                    ? 'PDF އާއި ${book.audio.length} އޯޑިއޯ ބައި ޑައުންލޯޑުވާނެ. ދެން އޮފްލައިންގައި ކިޔައި އަޑުއެހިދާނެ.'
+                    ? 'PDF ޑައުންލޯޑުވާނެ. އޯޑިއޯ ބައިތައް ވަކިވަކިން ޑައުންލޯޑުކުރެވޭނެ.'
                     : 'PDF ޑައުންލޯޑުވުމުން އޮފްލައިންގައި ކިޔެވޭނެ.',
                 style: Theme.of(context).textTheme.bodyLarge,
               ),
-              if (book.totalDownloadSize > 0) ...[
+              if (book.pdfFileSize > 0) ...[
                 const SizedBox(height: 8),
                 Text(
-                  _formatBytes(book.totalDownloadSize),
+                  _formatBytes(book.pdfFileSize),
                   textDirection: TextDirection.ltr,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
@@ -92,8 +94,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   DownloadService.instance.download(book);
                 },
                 icon: const Icon(Icons.download_rounded),
-                label: const Text('ޑައުންލޯޑުކުރައްވާ'),
+                label: const Text('PDF ޑައުންލޯޑުކުރައްވާ'),
               ),
+              if (book.hasAudio) ...[
+                const SizedBox(height: 8),
+                OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(sheetContext);
+                    showAudioPlayerSheet(context, book);
+                  },
+                  icon: const Icon(Icons.headphones_rounded),
+                  label: const Text('އޯޑިއޯ ބައިތައް'),
+                ),
+              ],
             ],
           ),
         ),
@@ -155,7 +168,10 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     return _BookmarksView(books: books, onOpen: _open);
                   }
                   if (_tabIndex == 1) {
-                    return _AudioBooksView(books: books, onOpen: _open);
+                    return _AudioBooksView(
+                        books: books,
+                        onOpen: (book, [initialPage]) =>
+                            showAudioPlayerSheet(context, book));
                   }
                   final query = _search.text.trim().toLowerCase();
                   final filtered = books.where((book) {
@@ -715,6 +731,7 @@ class _AudioBooksViewState extends State<_AudioBooksView> {
               ),
               itemBuilder: (context, index) => _BookTile(
                 book: visible[index],
+                audioOnly: true,
                 detail: '${visible[index].audio.length} ބައި',
                 onTap: () => widget.onOpen(visible[index]),
               ),
@@ -1412,7 +1429,9 @@ class _BookTile extends StatelessWidget {
     required this.onTap,
     this.detail,
     this.onDelete,
+    this.audioOnly = false,
   });
+  final bool audioOnly;
   final Book book;
   final VoidCallback onTap;
   final String? detail;
@@ -1530,7 +1549,13 @@ class _BookTile extends StatelessWidget {
                       maxLines: 1,
                     ),
                   ),
-                  _BookDownloadButton(book: book),
+                  if (audioOnly)
+                    IconButton(
+                        tooltip: 'Audio files and downloads',
+                        onPressed: onTap,
+                        icon: const Icon(Icons.queue_music_rounded, size: 20))
+                  else
+                    _BookDownloadButton(book: book),
                 ],
               ),
             ],
@@ -1587,7 +1612,11 @@ class _BookDownloadButtonState extends State<_BookDownloadButton> {
         ],
       ),
     );
-    if (remove == true) await _downloads.remove(widget.book);
+    if (remove == true) {
+      final handler = AudiobookAudioHandler.current;
+      if (handler?.book?.id == widget.book.id) await handler!.stop();
+      await _downloads.remove(widget.book);
+    }
   }
 
   Future<void> _startOrRetry() async {
@@ -1611,7 +1640,7 @@ class _BookDownloadButtonState extends State<_BookDownloadButton> {
         final (icon, tooltip, action) = switch (state.status) {
           BookDownloadStatus.notDownloaded => (
               Icons.download_rounded,
-              'ޑައުންލޯޑު',
+              'PDF ޑައުންލޯޑު',
               _startOrRetry,
             ),
           BookDownloadStatus.downloading => (

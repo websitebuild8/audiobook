@@ -1,6 +1,6 @@
 # Mobile download and glass update
 
-The app now queues each PDF and audio chapter using background_downloader 9.6.2. The native service runs independently of library tabs. Plans are persisted before enqueueing, native statuses are restored at launch, and completed files are retained when retrying. Existing complete offline books remain compatible. The previous implementation's abandoned `.partial` folders cannot safely be resumed because it saved no HTTP resume metadata.
+The app queues the PDF or individual user-selected audio chapters using background_downloader 9.6.2. Downloading a PDF no longer queues all audio chapters. The native service runs independently of library tabs. Plans are persisted before enqueueing, native statuses are restored at launch, and completed files are retained when retrying. Existing complete offline books remain compatible. The previous implementation's abandoned `.partial` folders cannot safely be resumed because it saved no HTTP resume metadata.
 
 Backgrounding the app is supported. Force-quitting, force-stopping, battery restrictions, network conditions, and OS scheduling can still interrupt transfers. On reopening, interrupted native tasks are reconciled; failed tasks show Retry. Resuming an individual partial file depends on native resume data and server support. Completed chapters are retained. No claim of uninterrupted transfer after force-quit is made.
 
@@ -13,7 +13,7 @@ Glass uses liquid_glass_widgets 1.7.1, with standard quality on the header contr
 Use Codemagic to build both platforms with the committed lockfile and a Flutter version compatible with liquid_glass_widgets (at least 3.41; the development environment uses 3.47.2). Increment the build number above the latest uploaded value.
 
 On an actual iPhone and Android device:
-- Start a large audiobook; switch between all library tabs and start a second book. Confirm progress continues and both finish.
+- Start a large audio chapter download; switch between all library tabs and start a second book. Confirm progress continues and both finish.
 - Background and lock the phone for several minutes; return and confirm progress restores.
 - Interrupt the network, restore it, and retry if necessary. Completed chapters should remain.
 - Force-close, reopen, and confirm download recovery or a usable Retry action.

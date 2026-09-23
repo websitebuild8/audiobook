@@ -14,7 +14,7 @@ Commit/push these changes, use a fresh build number, then build Android and iOS 
 
 Before releasing publicly, test on physical Android and iPhone devices:
 
-1. Download a multi-chapter audiobook; start playback; return to the library and switch sections. Verify playback and mini-player persist.
+1. Download selected chapters of a multi-chapter audiobook; start playback; return to the library and switch sections. Verify playback and mini-player persist.
 2. Open another book without pressing Play. The first audiobook must continue.
 3. Lock the screen for several minutes and cross a chapter boundary. Verify title, seek bar, play/pause, and skip controls in notification/Control Center.
 4. Use another app; then reopen the reader. Position and chapter must match, without a second audio stream.
@@ -26,3 +26,5 @@ Before releasing publicly, test on physical Android and iPhone devices:
 Automated tests cover shared player ownership across reader disposal, saved positions, system commands/metadata, replacing the book queue, stop during loading, task removal, and replay after completion. Native background execution and phone-specific controls still require the device checks above.
 
 Reference: https://pub.dev/packages/audio_service
+
+The draggable player and separate chapter downloads are described in [audio-sheet-and-chapter-downloads.md](audio-sheet-and-chapter-downloads.md).

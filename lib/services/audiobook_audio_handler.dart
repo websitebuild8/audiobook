@@ -7,11 +7,14 @@ import 'package:just_audio/just_audio.dart';
 
 import '../models/book.dart';
 import 'progress_service.dart';
+import 'download_service.dart';
 
 /// Owned by the app, never by a reader screen.
 class AudiobookAudioHandler extends BaseAudioHandler {
-  AudiobookAudioHandler({AudioPlayer? player})
-      : player = player ?? AudioPlayer() {
+  AudiobookAudioHandler(
+      {AudioPlayer? player, Future<Book> Function(Book)? resolveBook})
+      : _resolveBook = resolveBook,
+        player = player ?? AudioPlayer() {
     _subscriptions.add(this.player.playbackEventStream.listen((_) {
       _broadcast();
     }, onError: (Object error, StackTrace stack) {
@@ -47,7 +50,8 @@ class AudiobookAudioHandler extends BaseAudioHandler {
   static AudiobookAudioHandler get instance => current!;
   static Future<void> initialize() async {
     current = await AudioService.init(
-      builder: AudiobookAudioHandler.new,
+      builder: () => AudiobookAudioHandler(
+          resolveBook: DownloadService.instance.playableBook),
       config: const AudioServiceConfig(
         androidNotificationChannelId: 'com.athariyyah.myapp.audio',
         androidNotificationChannelName: 'Audiobook playback',
@@ -61,6 +65,7 @@ class AudiobookAudioHandler extends BaseAudioHandler {
   }
 
   final AudioPlayer player;
+  final Future<Book> Function(Book)? _resolveBook;
   final List<StreamSubscription<dynamic>> _subscriptions = [];
   Timer? _progressTimer;
   Book? book;
@@ -73,15 +78,24 @@ class AudiobookAudioHandler extends BaseAudioHandler {
   bool get loading => _loading;
 
   /// Merely viewing a different book must not replace the playing audiobook.
-  Future<void> playBook(Book next) {
+  Future<void> playBook(Book next, {int? chapterIndex, bool autoPlay = true}) {
     final intent = ++_intent;
     final operation = _selection.then((_) async {
       if (intent != _intent || !next.hasAudio) return;
-      if (book?.id != next.id || player.audioSource == null) {
+      if (chapterIndex != null &&
+          (chapterIndex < 0 || chapterIndex >= next.audio.length)) {
+        return;
+      }
+      final resolved = await (_resolveBook?.call(next) ?? Future.value(next));
+      if (intent != _intent) return;
+      final sourcesChanged = !listEquals(
+          book?.audio.map((c) => c.assetPath).toList(),
+          resolved.audio.map((c) => c.assetPath).toList());
+      if (book?.id != next.id || player.audioSource == null || sourcesChanged) {
         await saveProgress();
         _loading = true;
         await player.stop();
-        book = next;
+        book = resolved;
         _ended = false;
         final items = [
           for (var i = 0; i < next.audio.length; i++)
@@ -98,10 +112,12 @@ class AudiobookAudioHandler extends BaseAudioHandler {
           final saved = await ProgressService.audioFor(next.id);
           await player.setAudioSources([
             for (var i = 0; i < next.audio.length; i++)
-              _source(next.audio[i].assetPath, items[i]),
+              _source(resolved.audio[i].assetPath, items[i]),
           ],
-              initialIndex: saved.chapter.clamp(0, next.audio.length - 1),
-              initialPosition: saved.position);
+              initialIndex:
+                  chapterIndex ?? saved.chapter.clamp(0, next.audio.length - 1),
+              initialPosition:
+                  chapterIndex == null ? saved.position : Duration.zero);
         } catch (_) {
           book = null;
           queue.add([]);
@@ -112,9 +128,13 @@ class AudiobookAudioHandler extends BaseAudioHandler {
           _updateItem();
           _broadcast();
         }
+      } else if (chapterIndex != null) {
+        _ended = false;
+        await player.seek(Duration.zero, index: chapterIndex);
+        await saveProgress();
       }
       if (intent == _intent) {
-        await play();
+        if (autoPlay) await play();
       } else {
         await player.stop();
       }
@@ -229,9 +249,7 @@ class AudiobookAudioHandler extends BaseAudioHandler {
   @override
   Future<void> skipToQueueItem(int index) async {
     if (_loading || index < 0 || index >= queue.value.length) return;
-    _ended = false;
-    await player.seek(Duration.zero, index: index);
-    await saveProgress();
+    await playBook(book!, chapterIndex: index, autoPlay: player.playing);
   }
 
   @override

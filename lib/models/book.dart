@@ -3,14 +3,20 @@ class AudioChapter {
     required this.title,
     required this.assetPath,
     this.fileSize = 0,
+    this.remoteSource,
   });
 
   final String title;
   final String assetPath;
   final int fileSize;
+  final String? remoteSource;
+  String get downloadSource => remoteSource ?? assetPath;
 
-  AudioChapter copyWithSource(String source) =>
-      AudioChapter(title: title, assetPath: source, fileSize: fileSize);
+  AudioChapter copyWithSource(String source) => AudioChapter(
+      title: title,
+      assetPath: source,
+      fileSize: fileSize,
+      remoteSource: downloadSource);
 }
 
 class Book {
