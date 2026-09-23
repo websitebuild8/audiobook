@@ -9,6 +9,7 @@ import { Admins } from './collections/Admins'
 import { Books } from './collections/Books'
 import { Categories } from './collections/Categories'
 import { Media } from './collections/Media'
+import { adminOrigins } from './config/admin-origins'
 
 const filename = fileURLToPath(import.meta.url)
 const dirname = path.dirname(filename)
@@ -21,6 +22,7 @@ const serverURL = process.env.NEXT_PUBLIC_SERVER_URL ||
 
 export default buildConfig({
   serverURL,
+  csrf: [...adminOrigins],
   secret: process.env.PAYLOAD_SECRET || '',
   admin: {
     user: Admins.slug,
