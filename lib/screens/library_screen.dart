@@ -9,6 +9,7 @@ import '../theme/category_theme.dart';
 import '../widgets/book_cover.dart';
 import '../widgets/reading_progress.dart';
 import '../widgets/app_glass.dart';
+import '../widgets/glass_bottom_navigation.dart';
 import '../widgets/mini_audio_player.dart';
 import '../widgets/audio_player_sheet.dart';
 import '../services/audiobook_audio_handler.dart';
@@ -127,7 +128,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       extendBody: true,
       backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
-        bottom: true,
+        bottom: false,
         child: RefreshIndicator(
           onRefresh: _refreshCatalog,
           child: AnimatedSwitcher(
@@ -307,7 +308,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                                 setState(() => _bookPage = page),
                           ),
                         ),
-                      const SliverToBoxAdapter(child: SizedBox(height: 18)),
+                      const LibraryBottomInset(),
                     ],
                   );
                 },
@@ -320,76 +321,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const MiniAudioPlayer(),
-          _ModernBottomNavigation(
+          GlassBottomNavigation(
             selectedIndex: _tabIndex,
             onSelected: (index) => setState(() => _tabIndex = index),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ModernBottomNavigation extends StatelessWidget {
-  const _ModernBottomNavigation({
-    required this.selectedIndex,
-    required this.onSelected,
-  });
-
-  final int selectedIndex;
-  final ValueChanged<int> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 8, 18, 12),
-        child: AppGlass(
-          radius: 25,
-          tint: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0x551C2228)
-              : const Color(0x66FFFFFF),
-          child: SizedBox(
-            height: 66,
-            child: Row(
-              children: [
-                Expanded(
-                  child: _NavigationItem(
-                    label: 'މައި ޞަފްޙާ',
-                    icon: Icons.home_rounded,
-                    selected: selectedIndex == 0,
-                    onTap: () => onSelected(0),
-                  ),
-                ),
-                Expanded(
-                  child: _NavigationItem(
-                    label: 'އޯޑިއޯ',
-                    icon: Icons.headphones_rounded,
-                    selected: selectedIndex == 1,
-                    onTap: () => onSelected(1),
-                  ),
-                ),
-                Expanded(
-                  child: _NavigationItem(
-                    label: 'ބުކްމާކް',
-                    icon: Icons.bookmarks_rounded,
-                    selected: selectedIndex == 2,
-                    onTap: () => onSelected(2),
-                  ),
-                ),
-                Expanded(
-                  child: _NavigationItem(
-                    label: 'ފަހުން ކިޔެވުނު',
-                    icon: Icons.history_rounded,
-                    selected: selectedIndex == 3,
-                    onTap: () => onSelected(3),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
       ),
     );
   }
@@ -449,6 +385,7 @@ class _RecentReadsView extends StatelessWidget {
                   },
                 ),
               ),
+            const LibraryBottomInset(),
           ],
         );
       },
@@ -598,59 +535,6 @@ class _RecentReadsEmptyState extends StatelessWidget {
   }
 }
 
-class _NavigationItem extends StatelessWidget {
-  const _NavigationItem({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    return Semantics(
-      selected: selected,
-      button: true,
-      label: label,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(22),
-        child: Center(
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 240),
-            curve: Curves.easeOutCubic,
-            padding: EdgeInsets.symmetric(
-              horizontal: 18,
-              vertical: 11,
-            ),
-            decoration: BoxDecoration(
-              color: selected
-                  ? (dark
-                      ? Colors.white.withValues(alpha: .18)
-                      : Colors.white.withValues(alpha: .65))
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(
-              icon,
-              color: selected
-                  ? Theme.of(context).colorScheme.primary
-                  : Theme.of(context).colorScheme.onSurface,
-              size: 24,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _AudioBooksView extends StatefulWidget {
   const _AudioBooksView({required this.books, required this.onOpen});
 
@@ -757,7 +641,7 @@ class _AudioBooksViewState extends State<_AudioBooksView> {
               onSelected: (page) => setState(() => _page = page),
             ),
           ),
-        const SliverToBoxAdapter(child: SizedBox(height: 18)),
+        const LibraryBottomInset(),
       ],
     );
   }
@@ -927,6 +811,7 @@ class _BookmarksViewState extends State<_BookmarksView> {
                   },
                 ),
               ),
+            const LibraryBottomInset(),
           ],
         );
       },
