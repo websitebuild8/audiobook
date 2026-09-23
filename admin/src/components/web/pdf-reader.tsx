@@ -10,15 +10,16 @@ import './pdf-reader.css'
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 const options = { cMapUrl: '/pdf-assets/cmaps/', standardFontDataUrl: '/pdf-assets/standard_fonts/', wasmUrl: '/pdf-assets/wasm/' }
 
-export default function PdfReader({ url, title }: { url: string; title: string }) {
+export default function PdfReader({ url, title, bookId }: { url: string; title: string; bookId: string }) {
   // A new source mounts an independent document and cancels the previous loading work.
-  return <PdfDocument key={url} url={url} title={title} />
+  return <PdfDocument key={url} url={url} title={title} bookId={bookId} />
 }
 
-function PdfDocument({ url, title }: { url: string; title: string }) {
+function PdfDocument({ url, title, bookId }: { url: string; title: string; bookId: string }) {
   const viewport = useRef<HTMLDivElement>(null)
   const rail = useRef<HTMLDivElement>(null)
   const grab = useRef(26)
+  const restored = useRef(false)
   const [pdf, setPdf] = useState<PDFDocumentProxy | null>(null)
   const [ratios, setRatios] = useState<number[]>([])
   const [width, setWidth] = useState(700)
@@ -79,25 +80,35 @@ function PdfDocument({ url, title }: { url: string; title: string }) {
     if (!viewport.current) return
     viewport.current.scrollTop = offsets[Math.max(0, Math.min(ratios.length - 1, page - 1))] + 16
   }
+  useEffect(() => {
+    if (!ratios.length || restored.current || !viewport.current) return
+    restored.current = true
+    try { const saved = Number(localStorage.getItem(`page::${bookId}`)); if (Number.isInteger(saved) && saved > 0) goTo(saved) } catch {}
+  }, [ratios, bookId])
+  useEffect(() => {
+    if (!restored.current) return
+    const timer = setTimeout(() => { try { localStorage.setItem(`page::${bookId}`, String(current)) } catch {} }, 300)
+    return () => clearTimeout(timer)
+  }, [current, bookId])
   const dragTo = (event: PointerEvent<HTMLButtonElement>) => {
     if (!rail.current || !viewport.current) return
     const box = rail.current.getBoundingClientRect()
     const position = Math.max(0, Math.min(1, (event.clientY - box.top - grab.current) / Math.max(1, box.height - 52)))
     viewport.current.scrollTop = position * maxScroll
   }
-  const fallback = <div className="pdf-message" role="alert"><p>This PDF could not be displayed. You can retry or open it in your browser.</p><button onClick={() => { setError(false); setPdf(null); setRatios([]); setAttempt(value => value + 1) }}>Try again</button><a href={url} target="_blank" rel="noreferrer">Open original PDF ↗</a></div>
+  const fallback = <div className="pdf-message" role="alert"><p>ފޮތް ލޯޑުނުވޭ. އަލުން ކުރައްވާ.</p><button onClick={() => { setError(false); setPdf(null); setRatios([]); setAttempt(value => value + 1) }}>އަލުން ކުރައްވާ</button><a href={url} target="_blank" rel="noreferrer">ފައިލް ހުޅުވާ ↗</a></div>
   return <section className="glass-pdf" dir="ltr" aria-label={`${title} PDF reader`}>
     <div className="pdf-tools">
-      <span aria-live="off">{ratios.length ? `${current} / ${ratios.length}` : 'Loading PDF…'}</span>
-      <label>Zoom <select aria-label="PDF zoom" value={zoom} onChange={event => setZoom(Number(event.target.value))}><option value={1}>Fit width</option><option value={1.25}>125%</option><option value={1.5}>150%</option><option value={2}>200%</option></select></label>
-      <a href={url} target="_blank" rel="noreferrer">Open original ↗</a>
+      <span aria-live="off">{ratios.length ? `${current} / ${ratios.length}` : 'ފޮތް ލޯޑުވަނީ…'}</span>
+      <label>ސައިޒު <select aria-label="PDF zoom" value={zoom} onChange={event => setZoom(Number(event.target.value))}><option value={1}>ފުޅާމިން</option><option value={1.25}>125%</option><option value={1.5}>150%</option><option value={2}>200%</option></select></label>
+      <a href={url} target="_blank" rel="noreferrer">ފައިލް ހުޅުވާ ↗</a>
     </div>
     <div ref={viewport} className="pdf-viewport" tabIndex={0} aria-label="PDF pages" onScroll={event => setScroll(event.currentTarget.scrollTop)}>
-      {error ? fallback : <Document key={attempt} file={url} options={options} suspense={false} onLoadSuccess={setPdf} onLoadError={() => setError(true)} loading={<p className="pdf-message" role="status">Loading PDF…</p>} onItemClick={({ pageNumber }) => { if (pageNumber) goTo(pageNumber) }}>
-        {pdf && !ratios.length && <p className="pdf-message" role="status">Preparing {pdf.numPages} pages…</p>}
+      {error ? fallback : <Document key={attempt} file={url} options={options} suspense={false} onLoadSuccess={setPdf} onLoadError={() => setError(true)} loading={<p className="pdf-message" role="status">ފޮތް ލޯޑުވަނީ…</p>} onItemClick={({ pageNumber }) => { if (pageNumber) goTo(pageNumber) }}>
+        {pdf && !ratios.length && <p className="pdf-message" role="status">ޞަފްޙާ {pdf.numPages} ލޯޑުވަނީ…</p>}
         {ratios.length > 0 && <div style={{ height: total, width: pageWidth, position: 'relative', margin: '0 auto' }}>
           {Array.from({ length: Math.max(0, last - first + 1) }, (_, index) => first + index).map(index => <div key={index} className="pdf-sheet" style={{ position: 'absolute', top: offsets[index], width: pageWidth, height: ratios[index] * pageWidth }} aria-label={`Page ${index + 1}`}>
-            <Page pageNumber={index + 1} width={pageWidth} devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2)} renderAnnotationLayer renderTextLayer loading={<span className="pdf-page-loading">Page {index + 1}…</span>} error={<a href={url} target="_blank" rel="noreferrer">Unable to render this page. Open original PDF.</a>} />
+            <Page pageNumber={index + 1} width={pageWidth} devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2)} renderAnnotationLayer renderTextLayer loading={<span className="pdf-page-loading">ޞަފްޙާ {index + 1}…</span>} error={<a href={url} target="_blank" rel="noreferrer">ޞަފްޙާ ލޯޑުނުވޭ. ފައިލް ހުޅުވާ.</a>} />
           </div>)}
         </div>}
       </Document>}

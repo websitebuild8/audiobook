@@ -2,6 +2,8 @@
 
 import {
   ArrowLeft,
+  CheckCircle2,
+  ShieldCheck,
   BookOpen,
   Bookmark,
   BookmarkCheck,
@@ -20,15 +22,20 @@ import {
 } from 'lucide-react'
 import Image from 'next/image'
 import dynamic from 'next/dynamic'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { expandBookEditions, isEditionId, type EditionId } from './book-editions'
 
+import { ReadingProvider, ReadingProgress, ReadBadge, useReading } from './reading-state'
+import { AudioPlayer, type AudioPlayerHandle } from './audio-player'
+import { DownloadButton, cachedMedia } from './download-button'
+
 type Media = { id: number; url?: string | null; alt?: string | null; filename?: string | null }
 type Category = { id: number; name: string; slug: string; description?: string | null; order?: number | null; active?: boolean | null }
 type Chapter = { id?: string | null; title: string; order: number; audio: number | Media }
-type Book = {
+export type Book = {
+  showReaderNotice?: boolean | null
   id: EditionId
   publishReadingOnlyEdition?: boolean | null
   title: string
@@ -55,7 +62,7 @@ const labels = {
   recent: 'ފަހުން ކިޔެވި',
 }
 
-function mediaURL(value: number | Media | null | undefined) {
+export function mediaURL(value: number | Media | null | undefined) {
   return value && typeof value === 'object' ? value.url || '' : ''
 }
 
@@ -72,7 +79,10 @@ function readStored(key: string) {
   }
 }
 
-export function LibraryApp() {
+export function LibraryApp() { return <ReadingProvider><LibraryContent /></ReadingProvider> }
+
+function LibraryContent() {
+  const player = useRef<AudioPlayerHandle>(null)
   const [books, setBooks] = useState<Book[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
@@ -110,14 +120,15 @@ export function LibraryApp() {
   useEffect(() => {
     setBookmarks(readStored(BOOKMARK_KEY))
     setRecent(readStored(RECENT_KEY))
-    const savedTheme = localStorage.getItem('makthaba-web-theme')
+    let savedTheme: string | null = null
+    try { savedTheme = localStorage.getItem('makthaba-web-theme') } catch {}
     setDark(savedTheme ? savedTheme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches)
     void loadCatalogue()
   }, [loadCatalogue])
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', dark)
-    localStorage.setItem('makthaba-web-theme', dark ? 'dark' : 'light')
+    try { localStorage.setItem('makthaba-web-theme', dark ? 'dark' : 'light') } catch {}
   }, [dark])
 
   useEffect(() => setPage(1), [tab, query, category])
@@ -140,7 +151,7 @@ export function LibraryApp() {
   function toggleBookmark(id: EditionId) {
     setBookmarks((current) => {
       const next = current.includes(id) ? current.filter((value) => value !== id) : [id, ...current]
-      localStorage.setItem(BOOKMARK_KEY, JSON.stringify(next))
+      try { localStorage.setItem(BOOKMARK_KEY, JSON.stringify(next)) } catch {}
       return next
     })
   }
@@ -148,7 +159,7 @@ export function LibraryApp() {
   function openBook(book: Book) {
     const next = [book.id, ...recent.filter((id) => id !== book.id)].slice(0, 3)
     setRecent(next)
-    localStorage.setItem(RECENT_KEY, JSON.stringify(next))
+    try { localStorage.setItem(RECENT_KEY, JSON.stringify(next)) } catch {}
     setSelected(book)
   }
 
@@ -161,10 +172,10 @@ export function LibraryApp() {
 
   return (
     <div className="min-h-dvh bg-[#faf8f3] text-stone-900 transition-colors duration-300 dark:bg-[#07120d] dark:text-stone-100">
-      <Header dark={dark} menuOpen={menuOpen} onMenu={() => setMenuOpen((value) => !value)} onTheme={() => setDark((value) => !value)} query={query} setQuery={setQuery} />
+      <Header dark={dark} menuOpen={menuOpen} onMenu={() => setMenuOpen((value) => !value)} onTheme={() => setDark((value) => !value)} query={query} setQuery={setQuery} ids={books.map(book => book.id)} />
       {menuOpen && <MobileMenu active={tab} onSelect={selectTab} />}
 
-      <main className="mx-auto w-full max-w-[1440px] px-4 pb-28 pt-4 sm:px-6 lg:px-10 lg:pb-12 lg:pt-8">
+      <main className="mx-auto w-full max-w-[1440px] px-4 pb-52 pt-4 sm:px-6 lg:px-10 lg:pb-36 lg:pt-8">
         <DesktopNav active={tab} onSelect={selectTab} />
 
         {tab === 'home' && featured && !query && !category && <Hero book={featured} onOpen={() => openBook(featured)} />}
@@ -189,7 +200,7 @@ export function LibraryApp() {
           ) : pageBooks.length ? (
             <div className="web-fade-up grid grid-cols-2 gap-x-4 gap-y-7 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
               {pageBooks.map((book, index) => (
-                <BookCard key={book.id} book={book} bookmarked={bookmarks.includes(book.id)} index={index} onBookmark={() => toggleBookmark(book.id)} onOpen={() => openBook(book)} />
+                <BookCard key={book.id} book={book} bookmarked={bookmarks.includes(book.id)} index={index} onBookmark={() => toggleBookmark(book.id)} onOpen={() => tab === 'audio' ? player.current?.open(book) : openBook(book)} />
               ))}
             </div>
           ) : (
@@ -198,21 +209,19 @@ export function LibraryApp() {
 
           {!loading && pages > 1 && <Pagination page={page} pages={pages} onChange={setPage} />}
         </section>
-        <footer className="mt-10 text-center">
-          <a href="/privacy" lang="en" className="text-sm text-emerald-800 underline underline-offset-4 dark:text-emerald-300">Privacy Policy</a>
-        </footer>
       </main>
 
       <MobileNav active={tab} onSelect={selectTab} />
-      {selected && <Reader book={selected} bookmarked={bookmarks.includes(selected.id)} onBookmark={() => toggleBookmark(selected.id)} onClose={() => setSelected(null)} />}
+      {selected && <Reader key={selected.id} onAudio={() => player.current?.open(selected)} book={selected} bookmarked={bookmarks.includes(selected.id)} onBookmark={() => toggleBookmark(selected.id)} onClose={() => setSelected(null)} />}
+      <AudioPlayer ref={player} />
     </div>
   )
 }
 
-function Header({ dark, menuOpen, onMenu, onTheme, query, setQuery }: { dark: boolean; menuOpen: boolean; onMenu: () => void; onTheme: () => void; query: string; setQuery: (value: string) => void }) {
+function Header({ ids, dark, menuOpen, onMenu, onTheme, query, setQuery }: { ids: EditionId[]; dark: boolean; menuOpen: boolean; onMenu: () => void; onTheme: () => void; query: string; setQuery: (value: string) => void }) {
   return (
     <header className="sticky top-0 z-30 border-b border-stone-200/70 bg-[#faf8f3]/90 backdrop-blur-xl dark:border-white/10 dark:bg-[#07120d]/88">
-      <div className="mx-auto flex h-20 max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:px-10">
+      <div className="mx-auto flex flex-wrap py-3 max-w-[1440px] items-center gap-3 px-4 sm:px-6 lg:px-10">
         <div className="flex min-w-0 items-center gap-3">
           <Image src="/makthaba-logo.png" width={52} height={52} priority alt="މަކްތަބާ އަޘަރިއްޔާ" className="size-12 rounded-2xl object-cover shadow-sm" />
           <div className="hidden min-w-0 sm:block">
@@ -220,10 +229,11 @@ function Header({ dark, menuOpen, onMenu, onTheme, query, setQuery }: { dark: bo
             <p className="truncate text-xs text-stone-500 dark:text-stone-400">ކިޔާލައްވާ • އަޑުއައްސަވާ</p>
           </div>
         </div>
-        <label className="relative mx-auto flex w-full max-w-xl items-center">
+        <div className="order-last w-full sm:order-none sm:mx-auto sm:max-w-xl sm:flex-1"><ReadingProgress ids={ids} /><label className="relative flex w-full items-center">
           <Search className="pointer-events-none absolute right-4 size-4 text-stone-400" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ފޮތެއް ހޯއްދަވާ..." className="h-11 w-full rounded-2xl border border-stone-200 bg-white/80 pr-11 pl-4 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-emerald-400" />
-        </label>
+        </label></div>
+        <a href="/privacy" aria-label="ޕްރައިވަސީ ޕޮލިސީ" title="ޕްރައިވަސީ ޕޮލިސީ" className="media-icon"><ShieldCheck className="size-5" /></a>
         <Button variant="ghost" size="icon" aria-label="ތީމް" onClick={onTheme}>{dark ? <Sun /> : <Moon />}</Button>
         <Button variant="ghost" size="icon" className="lg:hidden" aria-label="މެނޫ" onClick={onMenu}>{menuOpen ? <X /> : <Menu />}</Button>
       </div>
@@ -239,7 +249,7 @@ const navItems: { id: Tab; icon: typeof Home; label: string }[] = [
 ]
 
 function DesktopNav({ active, onSelect }: { active: Tab; onSelect: (tab: Tab) => void }) {
-  return <nav className="hidden items-center gap-2 lg:flex">{navItems.map(({ id, icon: Icon, label }) => <Button key={id} variant={active === id ? 'default' : 'ghost'} onClick={() => onSelect(id)}><Icon className="size-4" />{label}</Button>)}</nav>
+  return <nav className="web-glass mb-4 hidden items-center gap-2 rounded-3xl p-2 lg:flex">{navItems.map(({ id, icon: Icon, label }) => <Button key={id} variant={active === id ? 'default' : 'ghost'} onClick={() => onSelect(id)}><Icon className="size-4" />{label}</Button>)}</nav>
 }
 
 function MobileMenu({ active, onSelect }: { active: Tab; onSelect: (tab: Tab) => void }) {
@@ -247,20 +257,20 @@ function MobileMenu({ active, onSelect }: { active: Tab; onSelect: (tab: Tab) =>
 }
 
 function MobileNav({ active, onSelect }: { active: Tab; onSelect: (tab: Tab) => void }) {
-  return <nav className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-4 rounded-[1.7rem] border border-stone-200/70 bg-white/92 p-2 shadow-[0_14px_50px_rgba(0,0,0,.16)] backdrop-blur-xl lg:hidden dark:border-white/10 dark:bg-[#102018]/94">{navItems.map(({ id, icon: Icon, label }) => <button key={id} onClick={() => onSelect(id)} aria-label={label} title={label} className={cn('grid h-12 place-items-center rounded-2xl transition-all', active === id ? 'bg-emerald-800 text-white shadow-sm dark:bg-emerald-500 dark:text-emerald-950' : 'text-stone-500 dark:text-stone-400')}><Icon className="size-5" /></button>)}</nav>
+  return <nav className="fixed inset-x-3 bottom-3 z-30 grid grid-cols-4 rounded-[1.7rem] border border-stone-200/70 web-glass bg-white/45 p-2 shadow-[0_14px_50px_rgba(0,0,0,.16)] backdrop-blur-xl lg:hidden dark:border-white/10 dark:bg-stone-900/45">{navItems.map(({ id, icon: Icon, label }) => <button key={id} onClick={() => onSelect(id)} aria-label={label} title={label} className={cn('grid h-12 place-items-center rounded-2xl transition-all', active === id ? 'bg-white/65 text-emerald-800 shadow-sm dark:bg-white/15 dark:text-emerald-300' : 'text-stone-500 dark:text-stone-400')}><Icon className="size-5" /></button>)}</nav>
 }
 
 function Hero({ book, onOpen }: { book: Book; onOpen: () => void }) {
   const cover = mediaURL(book.cover)
   return (
-    <section className="relative overflow-hidden rounded-[2rem] bg-emerald-950 px-6 py-7 text-white shadow-xl sm:px-10 sm:py-9 lg:mt-7">
+    <section className="relative overflow-hidden rounded-[2rem] bg-emerald-50 px-6 py-7 text-black dark:bg-emerald-950 dark:text-white shadow-xl sm:px-10 sm:py-9 lg:mt-7">
       {cover && <Image src={cover} alt="" fill sizes="100vw" className="object-cover opacity-20 blur-xl" unoptimized />}
-      <div className="absolute inset-0 bg-gradient-to-l from-emerald-950 via-emerald-950/90 to-emerald-900/40" />
+      <div className="absolute inset-0 bg-gradient-to-l from-emerald-50 via-emerald-50/90 to-white/40 dark:from-emerald-950 dark:via-emerald-950/90 dark:to-emerald-900/40" />
       <div className="relative flex items-center justify-between gap-8">
         <div className="max-w-2xl">
           <span className="rounded-full bg-white/10 px-3 py-1 text-xs">ޚާއްޞަ ފޮތް</span>
           <h2 className="mt-4 text-3xl font-bold leading-tight sm:text-5xl">{book.title}</h2>
-          {book.author && <p className="mt-2 text-emerald-100">{book.author}</p>}
+          {book.author && <p className="mt-2 text-stone-700 dark:text-emerald-100">{book.author}</p>}
           <Button className="mt-6 bg-white text-emerald-950 hover:bg-emerald-50" onClick={onOpen}><BookOpen className="size-4" />ފޮތް ހުޅުއްވާ</Button>
         </div>
         <BookCover book={book} className="hidden w-36 rotate-[-3deg] sm:block lg:w-44" priority />
@@ -283,6 +293,7 @@ function BookCover({ book, className, priority = false }: { book: Book; classNam
   return (
     <div className={cn('relative aspect-[2/3] overflow-hidden rounded-r-md rounded-l-xl bg-gradient-to-br from-emerald-700 to-emerald-950 shadow-[10px_12px_24px_rgba(0,0,0,.22)] before:absolute before:inset-y-0 before:right-0 before:z-10 before:w-[5px] before:bg-white/20', className)}>
       {cover ? <Image src={cover} fill sizes="(max-width: 640px) 45vw, 220px" alt={book.title} priority={priority} unoptimized className="object-cover" /> : <div className="grid h-full place-items-center p-5 text-center text-lg font-bold text-white"><span>{book.title}</span></div>}
+      <ReadBadge id={book.id} />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-2 bg-gradient-to-r from-black/20 to-transparent" />
     </div>
   )
@@ -319,30 +330,37 @@ function EmptyState({ icon: Icon, title, action }: { icon: typeof Search; title:
   return <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-stone-300 bg-white/40 text-center dark:border-white/15 dark:bg-white/[.02]"><div><Icon className="mx-auto mb-4 size-10 text-emerald-700 dark:text-emerald-400" /><p className="mb-5 text-lg font-semibold">{title}</p>{action}</div></div>
 }
 
-const PdfReader = dynamic(() => import('./pdf-reader'), { ssr: false, loading: () => <p className="p-8 text-center">Loading PDF viewer…</p> })
+const PdfReader = dynamic(() => import('./pdf-reader'), { ssr: false, loading: () => <p className="p-8 text-center">ފޮތް ލޯޑުވަނީ…</p> })
 
-function Reader({ book, bookmarked, onBookmark, onClose }: { book: Book; bookmarked: boolean; onBookmark: () => void; onClose: () => void }) {
+function Reader({ book, bookmarked, onBookmark, onClose, onAudio }: { book: Book; bookmarked: boolean; onBookmark: () => void; onClose: () => void; onAudio: () => void }) {
   const pdf = mediaURL(book.pdf)
-  const chapters = [...(book.audioChapters || [])].sort((a, b) => a.order - b.order)
-  const [chapter, setChapter] = useState(0)
-  const audio = mediaURL(chapters[chapter]?.audio)
+  const [source, setSource] = useState(pdf)
+  const [notice, setNotice] = useState(book.showReaderNotice === true)
+  const { completed, toggle } = useReading()
+  useEffect(() => {
+    let cancelled = false, objectURL = ''
+    void cachedMedia(pdf).then(async response => {
+      if (!response) return
+      const blob = await response.blob()
+      if (cancelled) return
+      objectURL = URL.createObjectURL(blob); setSource(objectURL)
+    }).catch(() => {})
+    return () => { cancelled = true; if (objectURL) URL.revokeObjectURL(objectURL) }
+  }, [pdf])
+  useEffect(() => { const timer = setTimeout(() => setNotice(false), 30_000); return () => clearTimeout(timer) }, [])
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-[#faf8f3] dark:bg-[#07120d]">
-      <div className="flex min-h-16 items-center gap-2 border-b border-stone-200 bg-white/90 px-3 backdrop-blur dark:border-white/10 dark:bg-[#102018]/90 sm:px-6">
+    <div className="fixed inset-0 z-50 flex flex-col bg-[#faf8f3] pb-24 dark:bg-[#07120d]">
+      <div className="flex min-h-16 flex-wrap items-center gap-2 border-b border-stone-200 bg-white/90 px-3 backdrop-blur dark:border-white/10 dark:bg-[#102018]/90 sm:px-6">
         <Button variant="ghost" size="icon" onClick={onClose} aria-label="ފަހަތަށް"><ArrowLeft /></Button>
         <div className="min-w-0 flex-1"><h2 className="truncate font-bold">{book.title}</h2><p className="truncate text-xs text-stone-500 dark:text-stone-400">{book.author}</p></div>
-        <Button variant="ghost" size="icon" onClick={onBookmark}>{bookmarked ? <BookmarkCheck className="fill-current text-emerald-700 dark:text-emerald-400" /> : <Bookmark />}</Button>
-        {pdf && <Button asChild variant="outline" size="sm"><a href={pdf} download target="_blank" rel="noreferrer"><Download className="size-4" /><span className="hidden sm:inline">PDF</span></a></Button>}
+        <Button variant="ghost" size="icon" onClick={() => toggle(book.id)} aria-label={completed.includes(book.id) ? 'ކިޔައި ނިމިފައި' : 'ކިޔާ ނިމުނު ގޮތުގައި ފާހަގަކުރޭ'}><CheckCircle2 className={completed.includes(book.id) ? 'text-green-700 dark:text-green-400' : 'opacity-50'} /></Button>
+        <Button variant="ghost" size="icon" onClick={onBookmark} aria-label="ފާހަގަ">{bookmarked ? <BookmarkCheck className="fill-current text-emerald-700 dark:text-emerald-400" /> : <Bookmark />}</Button>
+        {book.audioChapters?.length ? <Button variant="ghost" size="icon" onClick={onAudio} aria-label="އަޑުއަހާ"><Headphones /></Button> : null}
+        {pdf && <DownloadButton url={pdf} name={`${book.title}.pdf`} />}
       </div>
-      {chapters.length > 0 && (
-        <div dir="ltr" className="flex flex-wrap items-center gap-3 border-b border-stone-200 bg-white px-3 py-3 dark:border-white/10 dark:bg-[#0c1912] sm:px-6">
-          {chapters.length > 1 && <select aria-label="Audio chapter" value={chapter} onChange={(event) => setChapter(Number(event.target.value))} className="h-10 max-w-52 rounded-xl border border-stone-200 bg-white px-3 text-sm dark:border-white/10 dark:bg-white/5">{chapters.map((item, index) => <option key={item.id || index} value={index}>{item.title}</option>)}</select>}
-          {audio && <audio key={audio} controls preload="metadata" className="h-10 min-w-0 flex-1"><source src={audio} /></audio>}
-          {audio && <Button asChild variant="ghost" size="icon"><a href={audio} download aria-label="Download audio"><Download /></a></Button>}
-        </div>
-      )}
       <div className="relative flex-1 bg-stone-200 dark:bg-black/30">
-        {pdf ? <PdfReader url={pdf} title={book.title} /> : <div className="grid h-full place-items-center">PDF ފައިލެއް ނެތް</div>}
+        {source ? <PdfReader url={source} title={book.title} bookId={String(book.id)} /> : <div className="grid h-full place-items-center">ފައިލެއް ނެތް</div>}
+        {notice && <div className="absolute inset-x-4 top-5 z-20 mx-auto max-w-xl rounded-3xl border border-white/50 bg-white/80 p-5 text-center text-black shadow-xl backdrop-blur-xl dark:bg-stone-900/80 dark:text-white" role="status"><button className="media-icon float-left" aria-label="ލައްޕާލާ" onClick={() => setNotice(false)}><X /></button><p className="max-h-52 overflow-auto leading-loose">ތަންބީހު: ބައެއް ޝަޔްޚުންގެ ފޮތްތަކާއި ޢިލްމީ މަސައްކަތްތައް މި ދާރުން ނެރުމަކީ، އެޝަޔްޚުންގެ ގޯސް ރައުޔުތަކާއި ފުރެދުންތަކަށް އެއްބަސްވުން ލާޒިމު ކަމެއް ނޫންކަމަށް އަންގާލަމެވެ. އެގޮތުން މިއިން ބައެއް ޝަޔްޚުންގެ ކިބައިން ޙާކިމިއްޔަތާއި، ޙަރަކިއްޔަތާއި، އެނޫންވެސް ފިކްރުތަކާއި ރައުޔުތަކާ މި ދާރު އެއްބަސްނުވާ ކަމަށް ފާހަގަކުރަމެވެ.</p></div>}
       </div>
     </div>
   )
