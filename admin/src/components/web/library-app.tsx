@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { expandBookEditions, isEditionId, type EditionId } from './book-editions'
 
+import { PushSettings } from './push-settings'
 import { ReadingProvider, ReadingProgress, ReadBadge, useReading } from './reading-state'
 import { AudioPlayer, type AudioPlayerHandle } from './audio-player'
 import { DownloadButton, cachedMedia } from './download-button'
@@ -233,6 +234,7 @@ function Header({ ids, dark, menuOpen, onMenu, onTheme, query, setQuery }: { ids
           <Search className="pointer-events-none absolute right-4 size-4 text-stone-400" />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ފޮތެއް ހޯއްދަވާ..." className="h-11 w-full rounded-2xl border border-stone-200 bg-white/80 pr-11 pl-4 text-sm outline-none transition focus:border-emerald-600 focus:ring-4 focus:ring-emerald-600/10 dark:border-white/10 dark:bg-white/5 dark:focus:border-emerald-400" />
         </label></div>
+        <PushSettings />
         <a href="/privacy" aria-label="ޕްރައިވަސީ ޕޮލިސީ" title="ޕްރައިވަސީ ޕޮލިސީ" className="media-icon"><ShieldCheck className="size-5" /></a>
         <Button variant="ghost" size="icon" aria-label="ތީމް" onClick={onTheme}>{dark ? <Sun /> : <Moon />}</Button>
         <Button variant="ghost" size="icon" className="lg:hidden" aria-label="މެނޫ" onClick={onMenu}>{menuOpen ? <X /> : <Menu />}</Button>

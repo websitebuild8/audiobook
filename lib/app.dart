@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/library_screen.dart';
 import 'services/download_service.dart';
+import 'services/push_notification_service.dart';
 import 'services/audiobook_audio_handler.dart';
 import 'theme/app_theme.dart';
 
@@ -18,6 +19,8 @@ class MaktabaApp extends StatefulWidget {
 
 class _MaktabaAppState extends State<MaktabaApp> with WidgetsBindingObserver {
   static const _themeKey = 'dark_mode';
+  final _navigator = GlobalKey<NavigatorState>();
+  final _messenger = GlobalKey<ScaffoldMessengerState>();
   bool _darkMode = false;
   bool _ready = false;
 
@@ -26,10 +29,12 @@ class _MaktabaAppState extends State<MaktabaApp> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _initialize();
+    PushNotificationService.instance.notice.addListener(_showPush);
   }
 
   @override
   void dispose() {
+    PushNotificationService.instance.notice.removeListener(_showPush);
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -41,6 +46,7 @@ class _MaktabaAppState extends State<MaktabaApp> with WidgetsBindingObserver {
       unawaited(AudiobookAudioHandler.current?.saveProgress());
     }
     if (state == AppLifecycleState.resumed) {
+      unawaited(PushNotificationService.instance.restore());
       DownloadService.instance.resumeUpdates().catchError((Object error) {
         debugPrint('Download update unavailable: $error');
       });
@@ -54,6 +60,23 @@ class _MaktabaAppState extends State<MaktabaApp> with WidgetsBindingObserver {
       _darkMode = prefs.getBool(_themeKey) ?? false;
       _ready = true;
     });
+    unawaited(PushNotificationService.instance.restore());
+  }
+
+  void _showPush() {
+    final notice = PushNotificationService.instance.notice.value;
+    if (notice == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (notice.opened) {
+        _navigator.currentState?.popUntil((route) => route.isFirst);
+      }
+      _messenger.currentState?.showSnackBar(SnackBar(
+        duration: const Duration(seconds: 10),
+        content: Text('${notice.title}\n${notice.body}'),
+      ));
+    });
+    WidgetsBinding.instance.ensureVisualUpdate();
   }
 
   Future<void> _toggleTheme() async {
@@ -67,6 +90,8 @@ class _MaktabaAppState extends State<MaktabaApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      navigatorKey: _navigator,
+      scaffoldMessengerKey: _messenger,
       title: 'Maktaba Athariyya',
       // Flutter does not currently provide a Dhivehi Material localization.
       // Arabic supplies an RTL localization for framework-owned controls such

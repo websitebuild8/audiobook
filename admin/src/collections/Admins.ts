@@ -11,7 +11,7 @@ export const Admins: CollectionConfig = {
   },
   access: {
     read: ({ req }) => Boolean(req.user),
-    create: ({ req }) => !req.user || req.user.role === 'super-admin',
+    create: ({ req }) => req.user?.collection === 'admins' && req.user.role === 'super-admin',
     update: ({ req, id }) => req.user?.role === 'super-admin' || req.user?.id === id,
     delete: ({ req }) => req.user?.role === 'super-admin',
   },
@@ -22,6 +22,10 @@ export const Admins: CollectionConfig = {
       type: 'select',
       label: 'މަޤާމު',
       defaultValue: 'editor',
+      access: {
+        create: ({ req }) => req.user?.role === 'super-admin',
+        update: ({ req }) => req.user?.role === 'super-admin',
+      },
       required: true,
       options: [
         { label: 'މައި އެޑްމިން', value: 'super-admin' },

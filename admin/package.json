@@ -25,6 +25,8 @@
     "clsx": "^2.1.1",
     "cross-env": "latest",
     "dotenv": "^16.4.7",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.5.0",
     "graphql": "^16.10.0",
     "lucide-react": "^1.43.0",
     "next": "latest",

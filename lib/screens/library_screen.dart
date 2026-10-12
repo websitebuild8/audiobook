@@ -15,6 +15,7 @@ import '../widgets/audio_player_sheet.dart';
 import '../services/audiobook_audio_handler.dart';
 import 'reader_screen.dart';
 import 'privacy_policy_screen.dart';
+import 'notification_settings_screen.dart';
 
 class LibraryScreen extends StatefulWidget {
   const LibraryScreen({
@@ -902,6 +903,12 @@ class _Header extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          IconButton(
+            tooltip: 'ނޯޓިފިކޭޝަން',
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute<void>(
+                builder: (_) => const NotificationSettingsScreen())),
+            icon: const Icon(Icons.notifications_outlined, size: 20),
           ),
           AppGlass(
             child: IconButton(

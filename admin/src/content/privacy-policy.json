@@ -1,7 +1,7 @@
 {
   "title": "Privacy Policy",
   "appName": "Makthaba Athariyya",
-  "updated": "17 September 2026",
+  "updated": "27 September 2026",
   "sections": [
     {
       "title": "About this policy",
@@ -27,6 +27,14 @@
       "paragraphs": [
         "When you load the catalogue, covers, PDFs, or audio, your device connects to the servers providing that content. Requests expose technical information such as your IP address and requested resource; infrastructure providers may also process request times, response status, and browser or client information. Requested resources may identify a book you access.",
         "The service uses Vercel for website and API hosting and Cloudflare R2 for media storage and delivery. These providers process network requests to deliver content and operate and protect their services. Processing may occur outside your country. Offline reading of downloaded files does not require a new request for those files."
+      ]
+    },
+    {
+      "title": "Optional push notifications",
+      "paragraphs": [
+        "If you enable announcements, Firebase Cloud Messaging processes an app installation identifier and push registration token to deliver messages from the library. Apple Push Notification service also processes delivery for iOS. Web notifications use Firebase and your browser’s push service. These providers may process technical information such as IP addresses and device or browser details. We do not add Firebase Analytics for this feature.",
+        "Notification permission is optional. You can turn announcements off using the notification bell/settings or your device/browser notification settings. Disabling announcements removes the topic subscription and requests deletion of the Firebase messaging token. Firebase and Apple manage their own technical retention. Your bookmarks and reading progress are not sent with notification registration.",
+        "We store admin message drafts and send history in Neon. For web registration abuse protection, we temporarily store a salted hash of the request IP with a request count; raw IP addresses and web push tokens are not stored in that registration-limit table. Records expire from the active limit after ten minutes and are cleaned up after approximately one day when another registration is processed."
       ]
     },
     {

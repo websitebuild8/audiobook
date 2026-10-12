@@ -1,7 +1,7 @@
 name: maktaba_athariyya
 description: A fast, fully offline Dhivehi and Arabic book and audiobook reader.
 publish_to: none
-version: 1.0.0+8
+version: 1.0.0+10
 
 environment:
   flutter: ">=3.41.0"
@@ -21,6 +21,8 @@ dependencies:
   liquid_glass_widgets: ^1.7.1
   audio_service: ^0.18.19
   audio_session: ^0.2.4
+  firebase_core: ^4.15.0
+  firebase_messaging: ^16.7.0
 
 dev_dependencies:
   flutter_test:

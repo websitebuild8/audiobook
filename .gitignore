@@ -49,3 +49,10 @@ app.*.map.json
 
 /app-debug.zip
 *.apk
+
+# Generated push configuration (server keys must never enter this repo).
+push-config.json
+android/app/src/main/res/values/firebase_config.xml
+ios/Runner/GoogleService-Info.plist
+.google-services.json 
+.GoogleService-Info.plist
