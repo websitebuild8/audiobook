@@ -54,5 +54,7 @@ app.*.map.json
 push-config.json
 android/app/src/main/res/values/firebase_config.xml
 ios/Runner/GoogleService-Info.plist
-.google-services.json 
-.GoogleService-Info.plist
+
+# Firebase client configuration: keep local copies out of source control.
+google-services.json
+GoogleService-Info.plist
