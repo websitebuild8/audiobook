@@ -22,7 +22,7 @@ class PrivacyPolicyScreen extends StatelessWidget {
                     const Text('Makthaba Athariyya · Maktaba Athariyyah'),
                     const SizedBox(height: 8),
                     const SelectableText(
-                        'Last updated: 27 September 2026\nhttps://www.athariyya.online/privacy'),
+                        'Last updated: 18 October 2026\nhttps://www.athariyya.online/privacy'),
                     const SizedBox(height: 24),
                     Text('About this policy',
                         style: Theme.of(context).textTheme.titleLarge),
@@ -56,12 +56,6 @@ class PrivacyPolicyScreen extends StatelessWidget {
                         padding: EdgeInsets.only(top: 10, bottom: 18),
                         child: SelectableText(
                             'The service uses Vercel for website and API hosting and Cloudflare R2 for media storage and delivery. These providers process network requests to deliver content and operate and protect their services. Processing may occur outside your country. Offline reading of downloaded files does not require a new request for those files.')),
-                    Text('Optional push notifications',
-                        style: Theme.of(context).textTheme.titleLarge),
-                    const Padding(
-                        padding: EdgeInsets.only(top: 10, bottom: 18),
-                        child: SelectableText(
-                            'If you enable announcements, Firebase Cloud Messaging processes an app installation identifier and push registration token to deliver messages from the library. Apple Push Notification service also processes delivery for iOS. Web notifications use Firebase and your browser’s push service. These providers may process technical information such as IP addresses and device or browser details. We do not add Firebase Analytics for this feature.\n\nNotification permission is optional. You can turn announcements off using the notification bell/settings or your device/browser notification settings. Disabling announcements removes the topic subscription and requests deletion of the Firebase messaging token. Firebase and Apple manage their own technical retention. Your bookmarks and reading progress are not sent with notification registration.')),
                     Text('Contacting us',
                         style: Theme.of(context).textTheme.titleLarge),
                     const Padding(

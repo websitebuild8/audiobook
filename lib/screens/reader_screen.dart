@@ -4,8 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 import '../models/book.dart';
-import '../services/pdf_search_service.dart';
-import '../widgets/pdf_search_panel.dart';
 import '../services/progress_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/audio_player_sheet.dart';
@@ -28,62 +26,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
       'ތަންބީހު: ބައެއް ޝަޔްޚުންގެ ފޮތްތަކާއި ޢިލްމީ މަސައްކަތްތައް މި ދާރުން ނެރުމަކީ، އެޝަޔްޚުންގެ ގޯސް ރައުޔުތަކާއި ފުރެދުންތަކަށް އެއްބަސްވުން ލާޒިމު ކަމެއް ނޫންކަމަށް އަންގާލަމެވެ. އެގޮތުން މިއިން ބައެއް ޝަޔްޚުންގެ ކިބައިން ޙާކިމިއްޔަތާއި، ޙަރަކިއްޔަތާއި، އެނޫންވެސް ފިކްރުތަކާއި ރައުޔުތަކާ މި ދާރު އެއްބަސްނުވާ ކަމަށް ފާހަގަކުރަމެވެ.';
 
   final _pdfController = PdfViewerController();
-  PdfSearchService? _search;
-  bool _searchOpen = false;
-  int _matchIndex = 0;
-  String _lastQuery = '';
-  int _lastMatchCount = 0;
-
-  void _prepareSearch(PdfDocument document) {
-    if (_search != null) return;
-    final search = PdfSearchService();
-    _search = search;
-    search.addListener(() {
-      if (!mounted) return;
-      final jump = search.query != _lastQuery ||
-          (_lastMatchCount == 0 && search.matches.isNotEmpty);
-      if (jump || _matchIndex >= search.matches.length) _matchIndex = 0;
-      _lastQuery = search.query;
-      _lastMatchCount = search.matches.length;
-      setState(() {});
-      _pdfController.invalidate();
-      if (jump && search.matches.isNotEmpty && _searchOpen) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && _searchOpen) _selectMatch(0, dismissKeyboard: false);
-        });
-      }
-    });
-    unawaited(search.index(document.pages.length, (number) async {
-      if (!_pdfController.isReady) return null;
-      return _pdfController
-          .useDocument((doc) => doc.pages[number - 1].loadStructuredText());
-    }));
-  }
-
-  Future<void> _selectMatch(int index, {bool dismissKeyboard = true}) async {
-    final matches = _search?.matches;
-    if (!_pdfController.isReady ||
-        matches == null ||
-        index >= matches.length ||
-        index < 0) {
-      return;
-    }
-    if (dismissKeyboard) FocusScope.of(context).unfocus();
-    setState(() => _matchIndex = index);
-    final match = matches[index];
-    await _pdfController.ensureVisible(
-        _pdfController.calcRectForRectInsidePage(
-            pageNumber: match.pageNumber, rect: match.bounds),
-        margin: 180);
-    if (mounted && _pdfController.isReady) _pdfController.invalidate();
-  }
-
-  void _closeSearch() {
-    FocusScope.of(context).unfocus();
-    setState(() => _searchOpen = false);
-    _search?.search('');
-  }
-
   int _page = 1;
   int _pageCount = 0;
   bool _bookmarked = false;
@@ -149,7 +91,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
   @override
   void dispose() {
     _noticeTimer?.cancel();
-    _search?.dispose();
     ProgressService.savePage(widget.book.id, _page);
     super.dispose();
   }
@@ -158,27 +99,6 @@ class _ReaderScreenState extends State<ReaderScreen> {
   Widget build(BuildContext context) {
     final viewerParams = PdfViewerParams(
       margin: 10,
-      pagePaintCallbacks: [
-        (canvas, rect, page) {
-          final matches = _search?.matches ?? [];
-          if (!_searchOpen) return;
-          for (var i = 0; i < matches.length; i++) {
-            final match = matches[i];
-            if (match.pageNumber != page.pageNumber) continue;
-            final paint = Paint()
-              ..color = (i == _matchIndex ? Colors.orange : Colors.yellow)
-                  .withValues(alpha: .45);
-            for (final box
-                in match.pageText.charRects.sublist(match.start, match.end)) {
-              canvas.drawRect(
-                  box
-                      .toRect(page: page, scaledPageSize: rect.size)
-                      .translate(rect.left, rect.top),
-                  paint);
-            }
-          }
-        }
-      ],
       // pdfrx creates its text-selection toolbar in a separate overlay. On
       // unsupported device locales that toolbar can lack MaterialLocalizations.
       // This reader does not expose copy/select actions, so disable the gesture
@@ -194,13 +114,10 @@ class _ReaderScreenState extends State<ReaderScreen> {
       ),
       onPageChanged: _onPageChanged,
       onViewerReady: (document, controller) {
-        if (mounted) {
-          setState(() => _pageCount = controller.pageCount);
-          _prepareSearch(document);
-        }
+        if (mounted) setState(() => _pageCount = controller.pageCount);
       },
       onGeneralTap: (context, controller, details) {
-        if (!_searchOpen) setState(() => _controlsVisible = !_controlsVisible);
+        setState(() => _controlsVisible = !_controlsVisible);
         return false;
       },
     );
@@ -240,11 +157,7 @@ class _ReaderScreenState extends State<ReaderScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Stack(
               children: [
-                Positioned.fill(
-                    top: _searchOpen
-                        ? MediaQuery.paddingOf(context).top + 200
-                        : 0,
-                    child: pdfViewer),
+                Positioned.fill(child: pdfViewer),
                 AnimatedPositioned(
                   duration: const Duration(milliseconds: 250),
                   curve: Curves.easeOutCubic,
@@ -259,28 +172,8 @@ class _ReaderScreenState extends State<ReaderScreen> {
                     bookmarked: _bookmarked,
                     onBack: () => Navigator.of(context).pop(),
                     onBookmark: _toggleBookmark,
-                    onSearch: _search?.hasText == true
-                        ? () {
-                            _closeNotice();
-                            setState(() {
-                              _searchOpen = !_searchOpen;
-                              _controlsVisible = true;
-                            });
-                            if (!_searchOpen) _closeSearch();
-                          }
-                        : null,
                   ),
                 ),
-                if (_searchOpen && _search != null)
-                  Positioned(
-                      top: MediaQuery.paddingOf(context).top + 68,
-                      left: 12,
-                      right: 12,
-                      child: PdfSearchPanel(
-                          search: _search!,
-                          current: _matchIndex,
-                          onSelect: _selectMatch,
-                          onClose: _closeSearch)),
                 if (widget.book.hasAudio)
                   AnimatedPositioned(
                     duration: const Duration(milliseconds: 250),
@@ -361,7 +254,6 @@ class _ReaderHeader extends StatelessWidget {
     required this.bookmarked,
     required this.onBack,
     required this.onBookmark,
-    this.onSearch,
   });
   final String title;
   final String bookId;
@@ -370,7 +262,6 @@ class _ReaderHeader extends StatelessWidget {
   final bool bookmarked;
   final VoidCallback onBack;
   final VoidCallback onBookmark;
-  final VoidCallback? onSearch;
 
   @override
   Widget build(BuildContext context) {
@@ -410,11 +301,6 @@ class _ReaderHeader extends StatelessWidget {
                   ],
                 ),
               ),
-              if (onSearch != null)
-                IconButton(
-                    tooltip: 'ހޯދާ',
-                    onPressed: onSearch,
-                    icon: const Icon(Icons.search)),
               ReadStatus(bookId: bookId, interactive: true),
               IconButton(
                 tooltip: 'ބުކްމާކް',

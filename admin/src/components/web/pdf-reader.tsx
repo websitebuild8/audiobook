@@ -6,7 +6,6 @@ import type { PDFDocumentProxy } from 'pdfjs-dist'
 import 'react-pdf/dist/Page/AnnotationLayer.css'
 import 'react-pdf/dist/Page/TextLayer.css'
 import './pdf-reader.css'
-import { indexTextItems, searchPages, highlightItem, type SearchPage } from './pdf-search'
 
 pdfjs.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.min.mjs', import.meta.url).toString()
 const options = { cMapUrl: '/pdf-assets/cmaps/', standardFontDataUrl: '/pdf-assets/standard_fonts/', wasmUrl: '/pdf-assets/wasm/' }
@@ -17,17 +16,6 @@ export default function PdfReader({ url, title, bookId }: { url: string; title: 
 }
 
 function PdfDocument({ url, title, bookId }: { url: string; title: string; bookId: string }) {
-  const [textPages, setTextPages] = useState<(SearchPage | undefined)[]>([])
-  const [indexing, setIndexing] = useState(false)
-  const [partialIndex, setPartialIndex] = useState(false)
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [query, setQuery] = useState('')
-  const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [activeMatch, setActiveMatch] = useState(0)
-  const [showResults, setShowResults] = useState(false)
-  const pendingMatch = useRef<number | null>(null)
-  const matches = useMemo(() => searchPages(textPages, debouncedQuery), [textPages, debouncedQuery])
-  const searchable = textPages.some(page => page?.text.trim())
   const viewport = useRef<HTMLDivElement>(null)
   const rail = useRef<HTMLDivElement>(null)
   const grab = useRef(26)
@@ -71,47 +59,6 @@ function PdfDocument({ url, title, bookId }: { url: string; title: string; bookI
     return () => { cancelled = true }
   }, [pdf])
 
-  useEffect(() => {
-    setTextPages([]); setQuery(''); setDebouncedQuery(''); setSearchOpen(false); setPartialIndex(false)
-    if (!pdf) return
-    let cancelled = false
-    setIndexing(true)
-    async function indexText() {
-      const pages: (SearchPage | undefined)[] = []
-      for (let number = 1; number <= pdf!.numPages; number++) {
-        if (cancelled) return
-        try {
-          const page = await pdf!.getPage(number)
-          const content = await page.getTextContent()
-          if (cancelled) return
-          pages[number - 1] = indexTextItems(content.items)
-        } catch {
-          if (cancelled) return
-          setPartialIndex(true)
-        }
-        if (!cancelled) setTextPages([...pages])
-        await new Promise(resolve => setTimeout(resolve, 0))
-      }
-      if (!cancelled) setIndexing(false)
-    }
-    void indexText()
-    return () => { cancelled = true }
-  }, [pdf])
-
-  useEffect(() => {
-    const timer = setTimeout(() => { setDebouncedQuery(query); setActiveMatch(0); pendingMatch.current = 0 }, 250)
-    return () => clearTimeout(timer)
-  }, [query])
-
-  const revealMatch = () => {
-    if (pendingMatch.current === null || !viewport.current) return
-    const element = viewport.current.querySelector<HTMLElement>(`mark[data-pdf-match="${pendingMatch.current}"]`)
-    if (!element) return
-    const box = element.getBoundingClientRect(), container = viewport.current.getBoundingClientRect()
-    viewport.current.scrollTop += box.top - container.top - viewport.current.clientHeight / 2
-    pendingMatch.current = null
-  }
-
   const pageWidth = width * zoom
   const offsets = useMemo(() => {
     const result = [0]
@@ -143,23 +90,6 @@ function PdfDocument({ url, title, bookId }: { url: string; title: string; bookI
     const timer = setTimeout(() => { try { localStorage.setItem(`page::${bookId}`, String(current)) } catch {} }, 300)
     return () => clearTimeout(timer)
   }, [current, bookId])
-  const selectMatch = (index: number) => {
-    if (!matches.length) return
-    const next = (index + matches.length) % matches.length
-    setActiveMatch(next)
-    pendingMatch.current = next
-    goTo(matches[next].page)
-    requestAnimationFrame(revealMatch)
-  }
-  useEffect(() => {
-    if (searchOpen && matches.length && pendingMatch.current !== null && ratios.length) {
-      goTo(matches[Math.min(pendingMatch.current, matches.length - 1)].page)
-      requestAnimationFrame(revealMatch)
-    }
-  }, [matches, searchOpen, ratios])
-  const closeSearch = () => {
-    setSearchOpen(false); setQuery(''); setDebouncedQuery(''); setShowResults(false); pendingMatch.current = null
-  }
   const dragTo = (event: PointerEvent<HTMLButtonElement>) => {
     if (!rail.current || !viewport.current) return
     const box = rail.current.getBoundingClientRect()
@@ -169,29 +99,16 @@ function PdfDocument({ url, title, bookId }: { url: string; title: string; bookI
   const fallback = <div className="pdf-message" role="alert"><p>ފޮތް ލޯޑުނުވޭ. އަލުން ކުރައްވާ.</p><button onClick={() => { setError(false); setPdf(null); setRatios([]); setAttempt(value => value + 1) }}>އަލުން ކުރައްވާ</button><a href={url} target="_blank" rel="noreferrer">ފައިލް ހުޅުވާ ↗</a></div>
   return <section className="glass-pdf" dir="ltr" aria-label={`${title} PDF reader`}>
     <div className="pdf-tools">
-      {searchable && !error && <button type="button" aria-label="ހޯދާ" aria-expanded={searchOpen} onClick={() => searchOpen ? closeSearch() : setSearchOpen(true)}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><circle cx="10" cy="10" r="6"/><path d="m15 15 6 6"/></svg></button>}
       <span aria-live="off">{ratios.length ? `${current} / ${ratios.length}` : 'ފޮތް ލޯޑުވަނީ…'}</span>
       <label>ސައިޒު <select aria-label="PDF zoom" value={zoom} onChange={event => setZoom(Number(event.target.value))}><option value={1}>ފުޅާމިން</option><option value={1.25}>125%</option><option value={1.5}>150%</option><option value={2}>200%</option></select></label>
       <a href={url} target="_blank" rel="noreferrer">ފައިލް ހުޅުވާ ↗</a>
     </div>
-    {searchOpen && searchable && <div className="pdf-search" dir="rtl">
-      <div className="pdf-search-controls">
-        <input autoFocus aria-label="ލަފްޒެއް ހޯދާ" placeholder="ލަފްޒެއް ހޯދާ" value={query} onChange={event => { setQuery(event.target.value); setDebouncedQuery(''); pendingMatch.current = null }} onKeyDown={event => { if (event.key === 'Escape') closeSearch(); if (event.key === 'Enter') { event.preventDefault(); selectMatch(event.shiftKey ? activeMatch - 1 : activeMatch + 1) } }} />
-        <span role="status">{indexing ? 'ހޯދަނީ… ' : ''}{debouncedQuery.trim() ? (matches.length ? `${activeMatch + 1} / ${matches.length}` : 'ނުފެނުނު') : ''}</span>
-        <button aria-label="ކުރީގެ" disabled={!matches.length} onClick={() => selectMatch(activeMatch - 1)}>↑</button>
-        <button aria-label="ދެން އޮތް" disabled={!matches.length} onClick={() => selectMatch(activeMatch + 1)}>↓</button>
-        <button aria-label="ނަތީޖާ" aria-expanded={showResults} disabled={!matches.length} onClick={() => setShowResults(!showResults)}>☷</button>
-        <button aria-label="ބަންދުކުރޭ" onClick={closeSearch}>×</button>
-      </div>
-      {partialIndex && <p role="status">ބައެއް ޞަފްޙާތަކުން ހޯދެވުނީނުވެ.</p>}
-      {showResults && <div className="pdf-search-results">{matches.map((match, index) => <button key={`${match.page}-${match.start}`} aria-current={index === activeMatch ? 'true' : undefined} onClick={() => selectMatch(index)}><strong>ޞަފްޙާ {match.page}</strong><span>{match.snippet}</span></button>)}</div>}
-    </div>}
     <div ref={viewport} className="pdf-viewport" tabIndex={0} aria-label="PDF pages" onScroll={event => setScroll(event.currentTarget.scrollTop)}>
       {error ? fallback : <Document key={attempt} file={url} options={options} suspense={false} onLoadSuccess={setPdf} onLoadError={() => setError(true)} loading={<p className="pdf-message" role="status">ފޮތް ލޯޑުވަނީ…</p>} onItemClick={({ pageNumber }) => { if (pageNumber) goTo(pageNumber) }}>
         {pdf && !ratios.length && <p className="pdf-message" role="status">ޞަފްޙާ {pdf.numPages} ލޯޑުވަނީ…</p>}
         {ratios.length > 0 && <div style={{ height: total, width: pageWidth, position: 'relative', margin: '0 auto' }}>
           {Array.from({ length: Math.max(0, last - first + 1) }, (_, index) => first + index).map(index => <div key={index} className="pdf-sheet" style={{ position: 'absolute', top: offsets[index], width: pageWidth, height: ratios[index] * pageWidth }} aria-label={`Page ${index + 1}`}>
-            <Page customTextRenderer={({ str, itemIndex }) => highlightItem(str, itemIndex, textPages[index], searchOpen ? matches : [], activeMatch, index + 1)} onRenderTextLayerSuccess={revealMatch} pageNumber={index + 1} width={pageWidth} devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2)} renderAnnotationLayer renderTextLayer loading={<span className="pdf-page-loading">ޞަފްޙާ {index + 1}…</span>} error={<a href={url} target="_blank" rel="noreferrer">ޞަފްޙާ ލޯޑުނުވޭ. ފައިލް ހުޅުވާ.</a>} />
+            <Page pageNumber={index + 1} width={pageWidth} devicePixelRatio={Math.min(window.devicePixelRatio || 1, 2)} renderAnnotationLayer renderTextLayer loading={<span className="pdf-page-loading">ޞަފްޙާ {index + 1}…</span>} error={<a href={url} target="_blank" rel="noreferrer">ޞަފްޙާ ލޯޑުނުވޭ. ފައިލް ހުޅުވާ.</a>} />
           </div>)}
         </div>}
       </Document>}

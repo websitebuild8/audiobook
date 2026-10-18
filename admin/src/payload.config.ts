@@ -5,7 +5,6 @@ import { lexicalEditor } from '@payloadcms/richtext-lexical'
 import { s3Storage } from '@payloadcms/storage-s3'
 import { buildConfig } from 'payload'
 import sharp from 'sharp'
-import { Notifications } from './collections/Notifications'
 import { Admins } from './collections/Admins'
 import { Books } from './collections/Books'
 import { Categories } from './collections/Categories'
@@ -65,7 +64,7 @@ export default buildConfig({
     defaultLocale: 'dv',
     fallback: true,
   },
-  collections: [Admins, Categories, Books, Media, ...(process.env.PUSH_NOTIFICATIONS_ENABLED === 'true' ? [Notifications] : [])],
+  collections: [Admins, Categories, Books, Media],
   db: postgresAdapter({ push: false, pool: { connectionString: process.env.DATABASE_URI } }),
   editor: lexicalEditor(),
   sharp,

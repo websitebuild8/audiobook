@@ -1,4 +1,3 @@
-import { SendNotification } from '../../../../src/components/SendNotification'
 import { Icon as Icon_264db98da1ac5df3191d0afe4380a0d8 } from '../../../../src/components/Logo'
 import { Logo as Logo_264db98da1ac5df3191d0afe4380a0d8 } from '../../../../src/components/Logo'
 import { AdminNavLinks as AdminNavLinks_16a9a89cf079436366dba6f390e64f5b } from '../../../../src/components/AdminNavLinks'
@@ -8,7 +7,6 @@ import { CollectionCards as CollectionCards_f9c02e79a4aed9a3924487c0cd4cafb1 } f
 
 /** @type import('payload').ImportMap */
 export const importMap = {
-  "./src/components/SendNotification#SendNotification": SendNotification,
   "./src/components/Logo#Icon": Icon_264db98da1ac5df3191d0afe4380a0d8,
   "./src/components/Logo#Logo": Logo_264db98da1ac5df3191d0afe4380a0d8,
   "./src/components/AdminNavLinks#AdminNavLinks": AdminNavLinks_16a9a89cf079436366dba6f390e64f5b,
