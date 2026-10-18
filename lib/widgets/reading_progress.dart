@@ -58,8 +58,9 @@ class ReadingProgress extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                     color: scheme.primary,
                     backgroundColor: scheme.primary.withValues(alpha: .12),
-                    semanticsLabel: 'ކިޔައި ނިމިފައި',
-                    semanticsValue: count,
+                    // Keep the book count in the label; Flutter supplies the
+                    // numeric percentage required by the progress-bar role.
+                    semanticsLabel: 'ކިޔައި ނިމިފައި $count',
                   ),
                 ),
               ],
