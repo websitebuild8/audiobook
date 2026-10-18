@@ -1,0 +1,29 @@
+workflows:
+  ipad-app-store-screenshots:
+    name: iPad App Store Screenshots
+    instance_type: mac_mini_m2
+    max_build_duration: 45
+    environment:
+      flutter: stable
+      xcode: latest
+    scripts:
+      - name: Install Flutter dependencies
+        script: flutter pub get
+      - name: Prepare iPad simulator
+        script: python3 scripts/prepare_ipad_simulator.py
+      - name: Capture iPad screens
+        script: |
+          set -euo pipefail
+          flutter drive \
+            --driver=test_driver/app_store_screenshots.dart \
+            --target=integration_test/app_store_screenshots_test.dart \
+            --device-id="$IPAD_SIMULATOR_UDID" \
+            --debug --no-pub
+      - name: Package screenshots
+        script: |
+          set -euo pipefail
+          python3 scripts/package_ipad_screenshots.py
+    artifacts:
+      - build/app-store-screenshots/ipad-13/*.png
+      - build/app-store-screenshots/ipad-13-screenshots.zip
+    # Deliberately no store publishing or signing credentials: simulator only.
